@@ -1,0 +1,90 @@
+
+  Star this project
+Code license:   GNU General Public License v3
+Labels:         document, search, repository, lucene, solr, couchdb, berkley, database, bdb, api, java, client, berkley, db, bdb
+Links:  
+
+    * Shahzad Bhatti
+
+Blogs:  
+
+    * Shahzad Bhatti's Blog
+
+Feeds:  
+
+    * Project feeds
+
+People details
+Project owners:
+        shahbhat
+DocuSearch
+Getting Started
+
+To get started download the source using:
+
+ svn checkout http://docusearch.googlecode.com/svn/trunk/ docusearch-read-only
+
+You will need to install Java 1.6, Maven 2.0+ and CouchDB before start using the services. On Mac, you can install CouchDB via:
+
+ sudo port install couchdb
+
+Then manually start the CouchDB using
+
+ sudo /opt/local/bin/couchdb
+
+You can verify if CouchDB is running using http://localhost:5984/_utils/index.html. Building
+
+Type “mvn” to build the project. Maven will download a bunch of files that may take a few minutes and will cache those locally and will then proceed to compile, test and build war file.
+Populating Database
+
+You are free to choose your favorite way to add or import data into CouchDB, though the DocuSearch includes some ETL programs to add comma or tab delimited data into CouchDB. For example, let say you want to find authorized e-file providers for IRS, so you download some data from IRS that has following format:
+
+business_name,street_address_1,street_address_2,city,state,zip,zip_4,contact_first_name,contact_middle_name,contact_last_name,phone,flag1,flag2,flag3,flag4
+
+You can import it to the couchdb using
+
+ mvn exec:java -Dexec.mainClass="com.plexobject.docusearch.etl.DocumentLoader" \
+ -Dexec.args="efile_providers wa.txt none business_name,street_address_1,street_address_2,city,state,zip,zip_4,contact_first_name,contact_middle_name,contact_last_name,phone"
+
+Which takes following arguments:
+
+    * name-of-database, e.g. efile_providers
+    * name of comma delimited file, e.g. wa.txt
+    * id-column or none if database ids will automatically be generated
+    * comma-delimited list of fields to be imported 
+
+Once the data is loaded, you can create index, but before that you will have to specify the index policy, which is just another CouchDB document. The index policy specifies fields to be indexed, whether they should be stored in index, score and boost values. These policy configurations are stored in the_config database and you can add the policy using:
+
+ curl -X PUT http://127.0.0.1:5984/the_config/index_policy_for_efile_providers -d \ '{"_id":"index_policy_for_efile_providers","dbname":"the_config","score":0,"boost":0,"fields":[{"name":"business_name", "storeInIndex":"true"},{"name":"street_address_1"},{"name":"city"},{"name":"zip"},{"name":"contact_first_name"},{"name":"contact_last_name"}]}'
+
+Later, you can retrieve the policy using:
+
+ curl http://localhost:5984/the_config/index_policy_for_efile_providers
+
+Now you are ready to build the index but let’s first start the Jetty with the REST based services via
+
+ mvn jetty:run-war
+
+Finally, you can use curl to build the index via:
+
+ curl -X POST http://localhost:9090/docusearch/svc/index/efile_providers
+
+Before you can query, you will have to specify query policy that is also stored in CouchDB and specifies list of fields that are searched, e.g.
+
+ curl -X PUT http://127.0.0.1:5984/the_config/query_policy_for_efile_providers -d \
+ '{"_id":"query_policy_for_efile_providers","dbname":"the_config","fields":["business_name", "street_address_1", "city", "contact_first_name", "contact_last_name"]}'
+
+Next you can search contents of the index via:
+
+ curl "http://localhost:9090/docusearch/svc/search/efile_providers?keywords=mike"
+
+Summary
+
+DocuSearch makes it easy to query documents on CouchDB, however I have also started adding support for Berkley DB if you choose to use it. I found CouchDB wastes a lot of space and is a bit slow so that may be alternative option for some. I also plan to add ngrams and stem based analyzers to create better search experience. I also welcome you to join the project. You can add yourself to http://code.google.com/p/docusearch/ project and start contributing.
+
+
+
+
+
+
+
