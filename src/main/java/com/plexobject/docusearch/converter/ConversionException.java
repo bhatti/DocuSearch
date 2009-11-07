@@ -3,7 +3,7 @@ package com.plexobject.docusearch.converter;
 /**
  * This is thrown when conversion error occurs
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public class ConversionException extends RuntimeException {

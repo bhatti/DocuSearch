@@ -8,7 +8,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
  * This class is used to represent Tuple of values. This class is immutable and
  * non-thread safe
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  * 
  */

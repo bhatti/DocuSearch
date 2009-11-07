@@ -5,7 +5,7 @@ import java.util.Map;
 import org.codehaus.jettison.json.JSONObject;
 
 /**
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public class JsonToMapConverter implements

@@ -3,7 +3,7 @@ package com.plexobject.docusearch.persistence;
 /**
  * This class is thrown when object doesn't exist in the database.
  *
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  *
  */
 public class NotFoundException extends PersistenceException {

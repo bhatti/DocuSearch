@@ -17,266 +17,274 @@ import org.apache.log4j.Logger;
 import com.plexobject.docusearch.Configuration;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
+import com.plexobject.docusearch.metrics.Metric;
+import com.plexobject.docusearch.metrics.Timer;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
 import com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb;
 
 /**
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  *         Base class for adding relationships to the documents.
  * 
  */
 public abstract class BaseRelationMerger implements Runnable {
-	protected static enum RelationType {
-		ATOM, HASH, ARRAY
-	}
+    private static final int LIMIT = Configuration.getInstance().getPageSize();
 
-	static final int MAX_LIMIT = Configuration.getInstance().getPageSize();
-	Logger logger = Logger.getLogger(getClass());
-	Map<String, Boolean> seenDocIds = new HashMap<String, Boolean>();
+    protected static enum RelationType {
+        ATOM, HASH, ARRAY
+    }
 
-	final DocumentRepository repository;
-	final String fromDatabase;
-	final String toDatabase;
-	final String fromId;
-	final String toId;
-	final String toRelationName;
-	final String[] fromColumnsToMerge;
-	final RelationType relationType;
-	int docCount;
+    static final int MAX_LIMIT = Configuration.getInstance().getPageSize();
+    Logger logger = Logger.getLogger(getClass());
+    final Map<String, Boolean> seenToDocIds = new HashMap<String, Boolean>();
+    final Map<String, Boolean> seenSourceDocIds = new HashMap<String, Boolean>();
 
-	public BaseRelationMerger(final File configFile) throws IOException {
-		this(new DocumentRepositoryCouchdb(), loadProperties(configFile));
+    final DocumentRepository repository;
+    final String fromDatabase;
+    final String toDatabase;
+    final String fromId;
+    final String toId;
+    final String toRelationName;
+    final String[] fromColumnsToMerge;
+    final RelationType relationType;
+    int docCount;
 
-	}
+    public BaseRelationMerger(final File configFile) throws IOException {
+        this(new DocumentRepositoryCouchdb(), loadProperties(configFile));
 
-	public BaseRelationMerger(final DocumentRepository repository,
-			final File configFile) throws IOException {
-		this(repository, loadProperties(configFile));
+    }
 
-	}
+    public BaseRelationMerger(final DocumentRepository repository,
+            final File configFile) throws IOException {
+        this(repository, loadProperties(configFile));
 
-	public BaseRelationMerger(final Properties props) {
-		this(new DocumentRepositoryCouchdb(), props);
-	}
+    }
 
-	public BaseRelationMerger(final DocumentRepository repository,
-			final Properties props) {
-		if (repository == null) {
-			throw new NullPointerException("DocumentRepository not specified");
-		}
-		if (props == null) {
-			throw new NullPointerException("Properties not specified");
-		}
-		this.repository = repository;
-		fromDatabase = props.getProperty("from.database");
-		if (GenericValidator.isBlankOrNull(fromDatabase)) {
-			throw new IllegalArgumentException("fromDatabase not specified");
-		}
-		toDatabase = props.getProperty("to.database");
-		if (GenericValidator.isBlankOrNull(toDatabase)) {
-			throw new IllegalArgumentException("toDatabase not specified");
-		}
-		fromId = props.getProperty("from.id");
-		if (GenericValidator.isBlankOrNull(fromId)) {
-			throw new IllegalArgumentException("fromId not specified");
-		}
-		toId = props.getProperty("to.id");
-		if (GenericValidator.isBlankOrNull(toId)) {
-			throw new IllegalArgumentException("toId not specified");
-		}
-		toRelationName = props.getProperty("to.relation.name");
-		if (GenericValidator.isBlankOrNull(toRelationName)) {
-			throw new IllegalArgumentException("toRelationName not specified");
-		}
-		fromColumnsToMerge = props.getProperty("from.merge.columns", "").split(
-				",");
-		relationType = RelationType.valueOf(props.getProperty("relation.type",
-				String.valueOf(RelationType.ARRAY)).toUpperCase());
+    public BaseRelationMerger(final Properties props) {
+        this(new DocumentRepositoryCouchdb(), props);
+    }
 
-		if ((fromColumnsToMerge == null || fromColumnsToMerge.length == 0)) {
-			throw new IllegalArgumentException(
-					"fromColumnsToMerge and joinColumnsToMerge not specified");
-		}
-	}
+    public BaseRelationMerger(final DocumentRepository repository,
+            final Properties props) {
+        if (repository == null) {
+            throw new NullPointerException("DocumentRepository not specified");
+        }
+        if (props == null) {
+            throw new NullPointerException("Properties not specified");
+        }
+        this.repository = repository;
+        fromDatabase = props.getProperty("from.database");
+        if (GenericValidator.isBlankOrNull(fromDatabase)) {
+            throw new IllegalArgumentException("fromDatabase not specified");
+        }
+        toDatabase = props.getProperty("to.database");
+        if (GenericValidator.isBlankOrNull(toDatabase)) {
+            throw new IllegalArgumentException("toDatabase not specified");
+        }
+        fromId = props.getProperty("from.id");
+        if (GenericValidator.isBlankOrNull(fromId)) {
+            throw new IllegalArgumentException("fromId not specified");
+        }
+        toId = props.getProperty("to.id");
+        if (GenericValidator.isBlankOrNull(toId)) {
+            throw new IllegalArgumentException("toId not specified");
+        }
+        toRelationName = props.getProperty("to.relation.name");
+        if (GenericValidator.isBlankOrNull(toRelationName)) {
+            throw new IllegalArgumentException("toRelationName not specified");
+        }
+        fromColumnsToMerge = props.getProperty("from.merge.columns", "").split(
+                ",");
+        relationType = RelationType.valueOf(props.getProperty("relation.type",
+                String.valueOf(RelationType.ARRAY)).toUpperCase());
 
-	public void merge(final List<Document> sourceDocuments) {
-		for (Document sourceDocument : sourceDocuments) {
-			try {
-				merge(sourceDocument);
-			} catch (Exception e) {
-				logger.error("Failed to merge " + sourceDocument, e);
-			}
-		}
-	}
+        if ((fromColumnsToMerge == null || fromColumnsToMerge.length == 0)) {
+            throw new IllegalArgumentException(
+                    "fromColumnsToMerge and joinColumnsToMerge not specified");
+        }
+    }
 
-	public void merge(final Document sourceDocument) {
-		final String fromIdValue = sourceDocument.getProperty(fromId);
+    public void merge(final List<Document> sourceDocuments) {
+        final Timer timer = Metric.newTimer(getClass().getSimpleName()
+                + ".merge");
+        for (Document sourceDocument : sourceDocuments) {
+            try {
+                merge(sourceDocument);
+            } catch (Exception e) {
+                logger.error("Failed to merge " + sourceDocument, e);
+            }
+        }
+        timer.stop();
+    }
 
-		if (GenericValidator.isBlankOrNull(fromIdValue)) {
-			throw new IllegalArgumentException("fromId " + fromId
-					+ " not found in source " + sourceDocument);
-		}
-		final String toIdValue = sourceDocument.getProperty(toId);
-		if (GenericValidator.isBlankOrNull(toIdValue)) {
-			throw new IllegalArgumentException("toId " + toId
-					+ " not found in " + sourceDocument);
-		}
+    public void merge(final Document sourceDocument) {
+        final String fromIdValue = sourceDocument.getProperty(fromId);
 
-		try {
-			final Collection<Document> fromDocuments = getFromDocuments(
-					sourceDocument, fromIdValue);
-			final Collection<Document> toDocuments = getToDocuments(
-					sourceDocument, toIdValue);
+        if (GenericValidator.isBlankOrNull(fromIdValue)) {
+            throw new IllegalArgumentException("fromId " + fromId
+                    + " not found in source " + sourceDocument);
+        }
+        final String toIdValue = sourceDocument.getProperty(toId);
+        if (GenericValidator.isBlankOrNull(toIdValue)) {
+            throw new IllegalArgumentException("toId " + toId
+                    + " not found in " + sourceDocument);
+        }
 
-			for (Document fromDocument : fromDocuments) {
-				for (Document toDocument : toDocuments) {
-					final DocumentBuilder docBuilder = new DocumentBuilder(
-							toDocument);
+        try {
+            final Collection<Document> fromDocuments = getFromDocuments(
+                    sourceDocument, fromIdValue);
+            final Collection<Document> toDocuments = getToDocuments(
+                    sourceDocument, toIdValue);
 
-					final Map<String, String> newRelation = new HashMap<String, String>();
-					mergeAttributes(sourceDocument, fromDocument, newRelation);
-					//
-					if (relationType == RelationType.ARRAY) {
-						docBuilder.put(toRelationName, extractAsArray(
-								toDocument, newRelation));
-					} else if (relationType == RelationType.HASH) {
-						docBuilder.put(toRelationName, newRelation);
-					} else if (relationType == RelationType.ATOM) {
-						docBuilder.put(toRelationName, extractAsAtom(
-								toDocument, newRelation));
-					}
-					if (docCount > 0 && docCount % 1000 == 0
-							&& logger.isInfoEnabled()) {
-						logger.info(docCount + ": Saving relation "
-								+ newRelation + " from join " + fromDocument
-								+ " into " + toDocument + " resulting in  "
-								+ docBuilder.build());
-					}
-					repository.saveDocument(docBuilder.build());
+            for (Document fromDocument : fromDocuments) {
+                for (Document toDocument : toDocuments) {
+                    final DocumentBuilder docBuilder = new DocumentBuilder(
+                            toDocument);
 
-				}
-			}
-		} catch (PersistenceException e) {
-			logger.error("Failed to merge " + sourceDocument + " due to " + e);
-		}
-		docCount++;
-	}
+                    final Map<String, String> newRelation = new HashMap<String, String>();
+                    mergeAttributes(sourceDocument, fromDocument, newRelation);
+                    //
+                    if (relationType == RelationType.ARRAY) {
+                        docBuilder.put(toRelationName, extractAsArray(
+                                toDocument, newRelation));
+                    } else if (relationType == RelationType.HASH) {
+                        docBuilder.put(toRelationName, newRelation);
+                    } else if (relationType == RelationType.ATOM) {
+                        docBuilder.put(toRelationName, extractAsAtom(
+                                toDocument, newRelation));
+                    }
+                    if (docCount > 0 && docCount % 1000 == 0
+                            && logger.isInfoEnabled()) {
+                        logger.info(docCount + ": Saving relation "
+                                + newRelation + " from join " + fromDocument
+                                + " into " + toDocument + " resulting in  "
+                                + docBuilder.build());
+                    }
+                    repository.saveDocument(docBuilder.build());
 
-	private String extractAsAtom(Document toDocument,
-			final Map<String, String> newRelation) {
-		for (Map.Entry<String, String> e : newRelation.entrySet()) {
-			return e.getValue();
-		}
-		return null;
-	}
+                }
+            }
+        } catch (PersistenceException e) {
+            logger.error("Failed to merge " + sourceDocument + " due to " + e);
+        }
+        docCount++;
+    }
 
-	@SuppressWarnings("unchecked")
-	private Collection<Map<String, String>> extractAsArray(Document toDocument,
-			final Map<String, String> newRelation) {
-		Collection<Map<String, String>> values = null;
+    private String extractAsAtom(Document toDocument,
+            final Map<String, String> newRelation) {
+        for (Map.Entry<String, String> e : newRelation.entrySet()) {
+            return e.getValue();
+        }
+        return null;
+    }
 
-		if (seenDocIds.get(toDocument.getId()) != null
-				&& toDocument.get(toRelationName) instanceof Collection) {
-			values = (Collection<Map<String, String>>) toDocument
-					.get(toRelationName);
-		}
-		seenDocIds.put(toDocument.getId(), Boolean.TRUE);
+    @SuppressWarnings("unchecked")
+    private Collection<Map<String, String>> extractAsArray(Document toDocument,
+            final Map<String, String> newRelation) {
+        Collection<Map<String, String>> values = null;
 
-		if (values == null) {
-			values = new HashSet<Map<String, String>>();
-		}
+        if (seenToDocIds.get(toDocument.getId()) != null
+                && toDocument.get(toRelationName) instanceof Collection) {
+            values = (Collection<Map<String, String>>) toDocument
+                    .get(toRelationName);
+        }
+        seenToDocIds.put(toDocument.getId(), Boolean.TRUE);
 
-		values.add(newRelation);
-		return values;
-	}
+        if (values == null) {
+            values = new HashSet<Map<String, String>>();
+        }
 
-	/**
-	 * This method will read all documents from the source repository and will
-	 * call merge method to combine attributes.
-	 */
-	@Override
-	public void run() {
-		try {
-			String startkey = null;
-			List<Document> sourceDocuments = null;
-			final long started = System.currentTimeMillis();
+        values.add(newRelation);
+        return values;
+    }
 
-			while ((sourceDocuments = repository.getAllDocuments(
-					getSourceDatabase(), startkey, null)).size() > 0) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Got " + sourceDocuments.size()
-							+ " for starting key " + startkey + ", limit "
-							+ MAX_LIMIT + " -- "
-							+ sourceDocuments.get(0).getId());
-				}
-				merge(sourceDocuments);
-				startkey = sourceDocuments.get(sourceDocuments.size() - 1)
-						.getId();
-			}
-			final long elapsed = System.currentTimeMillis() - started;
-			logger.info("Merged " + startkey + " records of "
-					+ getSourceDatabase() + " in " + elapsed + " milliseconds");
-		} catch (PersistenceException e) {
-			logger.error("Failed to merge with error-code " + e.getErrorCode(),
-					e);
-		}
-	}
+    /**
+     * This method will read all documents from the source repository and will
+     * call merge method to combine attributes.
+     */
+    @Override
+    public void run() {
+        try {
+            String startKey = null;
+            List<Document> sourceDocuments = null;
+            final Timer timer = Metric.newTimer(getClass().getSimpleName()
+                    + ".run");
 
-	/**
-	 * This method returns the name of source table that will be read
-	 * iteratively
-	 * 
-	 * @return
-	 */
-	protected abstract String getSourceDatabase();
+            while ((sourceDocuments = repository.getAllDocuments(
+                    getSourceDatabase(), startKey, null, LIMIT)).size() > 0) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Got " + sourceDocuments.size()
+                            + " for starting key " + startKey + ", limit "
+                            + MAX_LIMIT + " -- "
+                            + sourceDocuments.get(0).getId());
+                }
+                merge(sourceDocuments);
+                startKey = sourceDocuments.get(sourceDocuments.size() - 1)
+                        .getId();
+            }
+            timer.stop("Merged " + startKey + " records of "
+                    + getSourceDatabase());
+        } catch (PersistenceException e) {
+            logger.error("Failed to merge with error-code " + e.getErrorCode(),
+                    e);
+        }
+    }
 
-	protected abstract Collection<Document> getFromDocuments(
-			final Document sourceDocument, final String fromIdValue);
+    /**
+     * This method returns the name of source table that will be read
+     * iteratively
+     * 
+     * @return
+     */
+    protected abstract String getSourceDatabase();
 
-	protected Collection<Document> getToDocuments(
-			final Document sourceDocument, final String toIdValue) {
+    protected abstract Collection<Document> getFromDocuments(
+            final Document sourceDocument, final String fromIdValue);
 
-		final Map<String, String> criteria = new HashMap<String, String>();
-		criteria.put(toId, toIdValue);
-		final Map<String, Document> toDocs = repository.query(toDatabase,
-				criteria);
-		return toDocs.values();
-	}
+    protected Collection<Document> getToDocuments(
+            final Document sourceDocument, final String toIdValue) {
 
-	protected void mergeAttributes(final Document sourceDocument,
-			final Document fromDocument, final Map<String, String> newRelation) {
-		for (String columnToMerge : fromColumnsToMerge) {
-			if (Document.isValidAttributeKey(columnToMerge)) {
-				String value = fromDocument.getProperty(columnToMerge);
-				if (value == null) {
-					throw new IllegalArgumentException("Failed to find "
-							+ columnToMerge + " in " + fromDocument);
-				}
-				newRelation.put(columnToMerge, value);
-			}
-		}
-	}
+        final Map<String, String> criteria = new HashMap<String, String>();
+        criteria.put(toId, toIdValue);
+        final Map<String, Document> toDocs = repository.query(toDatabase,
+                criteria);
+        return toDocs.values();
+    }
 
-	protected static Properties loadProperties(final File configFile)
-			throws IOException {
-		if (configFile == null) {
-			throw new NullPointerException("configFile not specified");
-		}
+    protected void mergeAttributes(final Document sourceDocument,
+            final Document fromDocument, final Map<String, String> newRelation) {
+        for (String columnToMerge : fromColumnsToMerge) {
+            if (Document.isValidAttributeKey(columnToMerge)) {
+                String value = fromDocument.getProperty(columnToMerge);
+                if (value == null) {
+                    throw new IllegalArgumentException("Failed to find "
+                            + columnToMerge + " in " + fromDocument);
+                }
+                newRelation.put(columnToMerge, value);
+            }
+        }
+    }
 
-		final Properties props = new Properties();
-		final InputStream in = new FileInputStream(configFile);
-		try {
-			props.load(in);
-		} finally {
-			try {
-				in.close();
-			} catch (IOException e) {
-			}
-		}
+    protected static Properties loadProperties(final File configFile)
+            throws IOException {
+        if (configFile == null) {
+            throw new NullPointerException("configFile not specified");
+        }
 
-		return props;
-	}
+        final Properties props = new Properties();
+        final InputStream in = new FileInputStream(configFile);
+        try {
+            props.load(in);
+        } finally {
+            try {
+                in.close();
+            } catch (IOException e) {
+            }
+        }
+
+        return props;
+    }
 
 }

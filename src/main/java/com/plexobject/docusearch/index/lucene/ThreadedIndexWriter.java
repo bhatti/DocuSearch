@@ -21,7 +21,7 @@ import com.plexobject.docusearch.Configuration;
  * Drop-in replacement for IndexWriter that uses multiple threads, under the
  * hood, to index added documents.
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  */
 
 public class ThreadedIndexWriter extends IndexWriter {

@@ -5,7 +5,7 @@ import java.io.IOException;
 import com.plexobject.docusearch.domain.Tuple;
 
 /**
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  *
  */
 public interface RestClient {

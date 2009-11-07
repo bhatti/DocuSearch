@@ -9,30 +9,36 @@ import com.plexobject.docusearch.query.QueryPolicy;
 
 /**
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public class QueryPolicyToMap implements
-		Converter<QueryPolicy, Map<String, Object>> {
+        Converter<QueryPolicy, Map<String, Object>> {
 
-	/**
-	 * 
-	 * @param QueryPolicy
-	 * 
-	 * @return Map
-	 */
-	@SuppressWarnings("unchecked")
-	@Override
-	public Map<String, Object> convert(final QueryPolicy policy) {
-		final Map<String, Object> value = new HashMap<String, Object>();
+    /**
+     * 
+     * @param QueryPolicy
+     * 
+     * @return Map
+     */
+    @Override
+    public Map<String, Object> convert(final QueryPolicy policy) {
+        final Map<String, Object> value = new HashMap<String, Object>();
 
-		if (policy != null) {
-			List fields = new ArrayList();
-			for (String field : policy.getFields()) {
-				fields.add(field);
-			}
-			value.put(Constants.FIELDS, fields);
-		}
-		return value;
-	}
+        if (policy != null) {
+            final List<Object> mapFields = new ArrayList<Object>();
+            for (QueryPolicy.Field field : policy.getFields()) {
+                final Map<String, Object> mapField = new HashMap<String, Object>();
+
+                mapField.put(Constants.NAME, field.name);
+                mapField.put(Constants.SORT_ORDER, field.sortOrder);
+                mapField.put(Constants.ASCENDING_ORDER, field.ascendingSort);
+                mapField.put(Constants.FUZZY_MATCH, field.fuzzyMatch);
+                mapField.put(Constants.BOOST, field.boost);
+                mapFields.add(mapField);
+            }
+            value.put(Constants.FIELDS, mapFields);
+        }
+        return value;
+    }
 }

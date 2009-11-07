@@ -20,7 +20,7 @@ import com.plexobject.docusearch.persistence.RepositoryFactory;
 import com.plexobject.docusearch.query.QueryPolicy;
 
 /**
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public class DocumentLoader extends DelimitedFileParser {
@@ -76,11 +76,11 @@ public class DocumentLoader extends DelimitedFileParser {
 		}
 		final String id = GenericValidator.isBlankOrNull(idColumn)
 				|| "none".equalsIgnoreCase(idColumn) ? null : row.get(idColumn);
-		Document doc = new DocumentBuilder(database).setId(id)
-				.putAll(row).build();
+		Document doc = new DocumentBuilder(database).setId(id).putAll(row)
+				.build();
 		try {
 			final Document saved = repository.saveDocument(doc);
-			if (rowNum % 1000 == 0) {
+			if (rowNum > 0 && rowNum % 1000 == 0) {
 				if (LOGGER.isInfoEnabled()) {
 					LOGGER.info("Adding " + rowNum + "th row " + row + " into "
 							+ saved);
@@ -89,7 +89,8 @@ public class DocumentLoader extends DelimitedFileParser {
 		} catch (PersistenceException e) {
 			if (e.getErrorCode() == RestClient.CLIENT_ERROR_CONFLICT) {
 				final Document oldDoc = repository.getDocument(database, id);
-				doc = new DocumentBuilder(oldDoc).setRevision(oldDoc.getRevision()).build();
+				doc = new DocumentBuilder(oldDoc).setRevision(
+						oldDoc.getRevision()).build();
 				try {
 					repository.saveDocument(doc);
 				} catch (PersistenceException ee) {

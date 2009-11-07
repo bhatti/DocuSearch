@@ -7,7 +7,7 @@ import com.plexobject.docusearch.domain.Tuple;
 
 /**
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  */
 public class TupleTest {
 	@Test

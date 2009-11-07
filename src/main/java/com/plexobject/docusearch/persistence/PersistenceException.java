@@ -3,7 +3,7 @@ package com.plexobject.docusearch.persistence;
 /**
  * This class is thrown when error occurs while reading or saving peristed data or metadata.
  *
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  *
  */
 public class PersistenceException extends RuntimeException {

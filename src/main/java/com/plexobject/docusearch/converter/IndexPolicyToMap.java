@@ -9,7 +9,7 @@ import com.plexobject.docusearch.index.IndexPolicy;
 
 /**
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public class IndexPolicyToMap implements
@@ -27,6 +27,8 @@ public class IndexPolicyToMap implements
 		if (policy != null) {
 			value.put(Constants.SCORE, policy.getScore());
 			value.put(Constants.BOOST, policy.getBoost());
+			value.put(Constants.ANALYZER, policy.getAnalyzer());
+			value.put(Constants.ADD_TO_DICTIONARY, policy.isAddToDictionary());
 			final List<Object> mapFields = new ArrayList<Object>();
 			for (IndexPolicy.Field field : policy.getFields()) {
 				final Map<String, Object> mapField = new HashMap<String, Object>();

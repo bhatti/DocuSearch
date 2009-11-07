@@ -13,7 +13,7 @@ import com.plexobject.docusearch.domain.Document;
 
 /**
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  */
 public class DocumentTest {
 

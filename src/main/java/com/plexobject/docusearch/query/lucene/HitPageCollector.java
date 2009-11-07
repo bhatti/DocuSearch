@@ -6,7 +6,7 @@ import org.apache.lucene.util.PriorityQueue;
 
 /**
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 @SuppressWarnings("deprecation")

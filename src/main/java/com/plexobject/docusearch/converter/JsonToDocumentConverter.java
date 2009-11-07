@@ -7,7 +7,7 @@ import com.plexobject.docusearch.domain.Document;
 import org.codehaus.jettison.json.JSONObject;
 
 /**
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  *
  */
 public class JsonToDocumentConverter implements Converter<JSONObject, Document> {

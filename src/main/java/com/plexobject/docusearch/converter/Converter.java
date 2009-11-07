@@ -1,7 +1,7 @@
 package com.plexobject.docusearch.converter;
 
 /**
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public interface Converter<FROM, TO> {

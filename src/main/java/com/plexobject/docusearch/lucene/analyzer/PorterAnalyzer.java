@@ -11,7 +11,7 @@ import org.apache.lucene.analysis.TokenStream;
 /**
  * Returns the stems of tokens using the Porter stemmer
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  */
 public class PorterAnalyzer extends Analyzer {
 	public TokenStream tokenStream(String fieldName, Reader reader) {

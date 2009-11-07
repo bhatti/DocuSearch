@@ -3,7 +3,7 @@ package com.plexobject.docusearch.http;
 /**
  * This class is thrown when error occurs while making an HTTP request.
  *
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  *
  */
 public class RestException extends RuntimeException {

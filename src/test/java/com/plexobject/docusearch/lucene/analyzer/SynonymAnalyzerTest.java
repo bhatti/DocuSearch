@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.plexobject.docusearch.lucene.LuceneTestUtils;
+import com.plexobject.docusearch.lucene.LuceneUtils;
 
 public class SynonymAnalyzerTest {
 	private static final String INPUT = "The quick brown fox jumps over the lazy dogs";
@@ -104,7 +105,7 @@ public class SynonymAnalyzerTest {
 	}
 
 	SynonymFilter getFilter(String input) {
-		final List<Token> toks = LuceneTestUtils.tokens(input);
+		final List<Token> toks = LuceneUtils.tokens(input);
 		TokenStream ts = new TokenStream() {
 			Iterator<Token> iter = toks.iterator();
 

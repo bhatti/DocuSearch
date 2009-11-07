@@ -15,7 +15,7 @@ import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 
 /**
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  *         This allows copying one or more attributes from one repository
  *         (table) to another repository.

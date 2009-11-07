@@ -8,7 +8,7 @@ import com.plexobject.docusearch.index.IndexPolicy;
 
 /**
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public class IndexPolicyToJson implements Converter<IndexPolicy, JSONObject> {
@@ -26,6 +26,8 @@ public class IndexPolicyToJson implements Converter<IndexPolicy, JSONObject> {
 			try {
 				value.put(Constants.SCORE, policy.getScore());
 				value.put(Constants.BOOST, policy.getBoost());
+				value.put(Constants.ANALYZER, policy.getAnalyzer());
+				value.put(Constants.ADD_TO_DICTIONARY, policy.isAddToDictionary());
 				final JSONArray jsonFields = new JSONArray();
 				for (IndexPolicy.Field field : policy.getFields()) {
 					JSONObject jsonField = new JSONObject();

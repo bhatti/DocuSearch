@@ -22,7 +22,7 @@ import com.plexobject.docusearch.converter.JavaToJsonConverter;
 
 /**
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  */
 public class JavaToJsonConverterTest {
 	private Converter<Object, Object> converter;

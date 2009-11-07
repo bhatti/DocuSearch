@@ -3,7 +3,7 @@ package com.plexobject.docusearch;
 /**
  * This class is thrown when error occurs while searching
  * 
- * @author bhatti@plexobject.com
+ * @author Shahzad Bhatti
  * 
  */
 public class SearchException extends RuntimeException {
