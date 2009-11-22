@@ -25,11 +25,11 @@ public class JsonToRankedTermTest {
     @Test
     public final void testConvert() throws JSONException {
         JSONObject json = new JSONObject();
-        json.put("name", "company");
+        json.put("name", "test_datum");
         json.put("value", "ibm");
         json.put("frequency", "10");
         RankedTerm term = converter.convert(json);
-        Assert.assertEquals("company", term.getName());
+        Assert.assertEquals("test_datum", term.getName());
         Assert.assertEquals("ibm", term.getValue());
         Assert.assertEquals(10, term.getFrequency());
     }

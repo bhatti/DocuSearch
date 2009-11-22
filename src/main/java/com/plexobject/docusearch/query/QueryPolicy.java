@@ -10,27 +10,57 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class QueryPolicy {
-    private final Map<String, Field> fields = new HashMap<String, Field>();
+    private final Map<String, Field> fields = new TreeMap<String, Field>();
+
+    public enum FieldType {
+        STRING(0), INTEGER(1), DOUBLE(2);
+        private int type;
+
+        private FieldType(int type) {
+            this.type = type;
+        }
+
+        public int getType() {
+            return type;
+        }
+
+        public static FieldType fromType(int type) {
+            switch (type) {
+            case 0:
+                return STRING;
+            case 1:
+                return INTEGER;
+            case 2:
+                return DOUBLE;
+            default:
+                throw new IllegalArgumentException("invalid type " + type);
+            }
+        }
+    }
 
     public static class Field implements Comparable<Field> {
         public final String name;
-        public final int sortOrder;
+        public final int sortOrder; // used for sorting, this field must be
+        // indexed, but should not be tokenized, and
+        // does not need to be stored (unless you
+        // happen to want it back with the rest of
+        // your document data).
         public final boolean ascendingSort;
         public final float boost;
-        public final boolean fuzzyMatch;
+        public final FieldType fieldType;
 
         public Field(final String name) {
-            this(name, 0, true, 0.0F, false);
+            this(name, 0, true, 0.0F, FieldType.STRING);
         }
 
         public Field(final String name, final int sortOrder,
                 final boolean ascendingSort, final float boost,
-                final boolean fuzzyMatch) {
+                final FieldType fieldType) {
             this.name = name;
             this.sortOrder = sortOrder;
             this.ascendingSort = ascendingSort;
             this.boost = boost;
-            this.fuzzyMatch = fuzzyMatch;
+            this.fieldType = fieldType;
         }
 
         /**
@@ -62,7 +92,7 @@ public class QueryPolicy {
             return new ToStringBuilder(this).append("name", this.name).append(
                     "sortOrder", sortOrder).append("ascendingSort",
                     ascendingSort).append("boost", this.boost).append(
-                    "fuzzyMatch", fuzzyMatch).toString();
+                    "fieldType", fieldType).toString();
         }
 
         @Override
@@ -84,13 +114,13 @@ public class QueryPolicy {
     }
 
     public void add(final String name) {
-        add(new Field(name, 0, true, 0.0F, false));
+        add(new Field(name, 0, true, 0.0F, FieldType.STRING));
     }
 
     public void add(final String name, final int sortOrder,
             final boolean ascendingSort, final float boost,
-            final boolean fuzzyMatch) {
-        add(new Field(name, sortOrder, ascendingSort, boost, fuzzyMatch));
+            final FieldType fieldType) {
+        add(new Field(name, sortOrder, ascendingSort, boost, fieldType));
     }
 
     public void add(final Field field) {
@@ -120,9 +150,7 @@ public class QueryPolicy {
         }
         QueryPolicy rhs = (QueryPolicy) object;
 
-        return new EqualsBuilder().append(
-                new TreeMap<String, Field>(this.fields),
-                new TreeMap<String, Field>(rhs.fields)).isEquals();
+        return new EqualsBuilder().append(this.fields, rhs.fields).isEquals();
     }
 
     /**

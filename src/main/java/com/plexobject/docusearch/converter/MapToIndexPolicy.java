@@ -38,6 +38,9 @@ public class MapToIndexPolicy implements
                 policy.setAddToDictionary(Boolean.valueOf(value.get(
                         Constants.ADD_TO_DICTIONARY).toString()));
             }
+            if (value.get(Constants.OWNER) != null) {
+                policy.setOwner(value.get(Constants.OWNER).toString());
+            }
             final List<Object> fields = (List<Object>) value
                     .get(Constants.FIELDS);
             if (fields != null) {

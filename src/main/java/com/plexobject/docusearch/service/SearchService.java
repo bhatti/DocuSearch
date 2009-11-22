@@ -22,22 +22,35 @@ public interface SearchService {
      *            - send detailed results
      * @return JSONObject for SearchDocList
      */
-    Response query(String index, String keywords, boolean includeSuggestions,
-            int start, int limit, boolean detailedResults);
+    Response query(String index, String owner, String keywords,
+            boolean includeSuggestions, int start, int limit,
+            boolean detailedResults);
+
+    /**
+     * This method queries the index with keywords and returns JSONObject for
+     * SearchDocList.
+     * 
+     * @param index
+     * @param keywords
+     * @param limit
+     * @return JSONObject for SearchDocList
+     */
+    Response autocomplete(String index, String keywords, int limit);
 
     /**
      * This method finds similar results for given document id
      * 
      * @param index
-     * @param docId
+     * @param externalId
+     * @param luceneId
      * @param start
      * @param limit
      * @param details
      *            - send detailed results
      * @return JSONObject for SearchDocList
      */
-    Response moreLikeThis(String index, int docId, int start, int limit,
-            boolean detailedResults);
+    Response moreLikeThis(String index, String externalId, int luceneId,
+            int start, int limit, boolean detailedResults);
 
     /**
      * This method collection of explanations for query results.

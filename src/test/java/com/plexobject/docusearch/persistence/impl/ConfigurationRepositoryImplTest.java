@@ -19,6 +19,7 @@ import com.plexobject.docusearch.index.IndexPolicy;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
+import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.QueryPolicy;
 
 public class ConfigurationRepositoryImplTest {
@@ -87,6 +88,26 @@ public class ConfigurationRepositoryImplTest {
     }
 
     @Test
+    public final void testGetLookupPolicy() {
+        EasyMock.expect(
+                repository.createDatabase(Configuration.getInstance()
+                        .getConfigDatabase())).andReturn(true);
+
+        EasyMock.expect(
+                repository.getDocument(Configuration.getInstance()
+                        .getConfigDatabase(), "lookup_policy_for_" + DB_NAME))
+                .andReturn(newQueryPolicyDocument());
+
+        EasyMock.replay(repository);
+        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase(), repository);
+        QueryPolicy policy = configRepository.getLookupPolicy(DB_NAME);
+
+        Assert.assertEquals(newQueryPolicy(), policy);
+        EasyMock.verify(repository);
+    }
+
+    @Test
     public final void testSaveIndexPolicy() {
         EasyMock.expect(
                 repository.createDatabase(Configuration.getInstance()
@@ -125,6 +146,28 @@ public class ConfigurationRepositoryImplTest {
                 Configuration.getInstance().getConfigDatabase(), repository);
         QueryPolicy policy = configRepository.saveQueryPolicy(DB_NAME,
                 newQueryPolicy());
+
+        Assert.assertEquals(newQueryPolicy(), policy);
+        EasyMock.verify(repository);
+    }
+
+    @Test
+    public final void testSaveLookupPolicy() {
+        EasyMock.expect(
+                repository.createDatabase(Configuration.getInstance()
+                        .getConfigDatabase())).andReturn(true);
+        final Document doc = newLookupPolicyDocument();
+        EasyMock.expect(
+                repository.getDocument(Configuration.getInstance()
+                        .getConfigDatabase(), "lookup_policy_for_" + DB_NAME))
+                .andReturn(newQueryPolicyDocument());
+        EasyMock.expect(repository.saveDocument(doc)).andReturn(doc);
+
+        EasyMock.replay(repository);
+        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase(), repository);
+        LookupPolicy policy = configRepository.saveLookupPolicy(DB_NAME,
+                newLookupPolicy());
 
         Assert.assertEquals(newQueryPolicy(), policy);
         EasyMock.verify(repository);
@@ -171,10 +214,25 @@ public class ConfigurationRepositoryImplTest {
         return policy;
     }
 
+    private static LookupPolicy newLookupPolicy() {
+        final LookupPolicy policy = new LookupPolicy();
+        policy.setFieldToReturn("returnField");
+        for (int i = 0; i < 10; i++) {
+            policy.add("name" + i);
+        }
+        return policy;
+    }
+
     private static Document newQueryPolicyDocument() {
         return new DocumentBuilder(Configuration.getInstance()
                 .getConfigDatabase()).setId("query_policy_for_" + DB_NAME)
                 .putAll(newQueryPolicyMap()).build();
+    }
+
+    private static Document newLookupPolicyDocument() {
+        return new DocumentBuilder(Configuration.getInstance()
+                .getConfigDatabase()).setId("lookup_policy_for_" + DB_NAME)
+                .putAll(newLookupPolicyMap()).build();
     }
 
     private static Map<String, Object> newQueryPolicyMap() {
@@ -190,6 +248,12 @@ public class ConfigurationRepositoryImplTest {
             fields.add(field);
         }
         map.put(Constants.FIELDS, fields);
+        return map;
+    }
+
+    private static Map<String, Object> newLookupPolicyMap() {
+        final Map<String, Object> map = newQueryPolicyMap();
+        map.put(Constants.FIELD_TO_RETURN, "fieldToReturn");
         return map;
     }
 }

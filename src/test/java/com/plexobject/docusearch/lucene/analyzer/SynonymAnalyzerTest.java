@@ -32,106 +32,157 @@ import com.plexobject.docusearch.lucene.LuceneTestUtils;
 import com.plexobject.docusearch.lucene.LuceneUtils;
 
 public class SynonymAnalyzerTest {
-	private static final String INPUT = "The quick brown fox jumps over the lazy dogs";
-	private IndexSearcher searcher;
-	private SynonymMap synonymMap;
-	private Analyzer analyzer;
-	private static Logger LOGGER = Logger.getRootLogger();
+    private static final String INPUT = "The quick brown fox jumps over the lazy dogs";
+    private IndexSearcher searcher;
+    private SynonymMap synonymMap;
+    private SynonymAnalyzer analyzer;
+    private static Logger LOGGER = Logger.getRootLogger();
 
-	@Before
-	public void setUp() throws Exception {
-		LOGGER.setLevel(Level.INFO);
+    @Before
+    public void setUp() throws Exception {
+        LOGGER.setLevel(Level.INFO);
 
-		LOGGER.addAppender(new ConsoleAppender(new PatternLayout(
-				PatternLayout.TTCC_CONVERSION_PATTERN)));
-		synonymMap = new SynonymMap(true);
+        LOGGER.addAppender(new ConsoleAppender(new PatternLayout(
+                PatternLayout.TTCC_CONVERSION_PATTERN)));
+    }
 
-		synonymMap.add(Arrays.asList("jumps"), SynonymMap.makeTokens(Arrays
-				.asList("jumps", "hops", "leaps")), false, true);
-		synonymMap.add(Arrays.asList("hops"), SynonymMap.makeTokens(Arrays
-				.asList("jumps", "hops", "leaps")), false, true);
-		synonymMap.add(Arrays.asList("leaps"), SynonymMap.makeTokens(Arrays
-				.asList("jumps", "hops", "leaps")), false, true);
+    private void setupDefaultSynonymMap() throws Exception {
+        analyzer = new SynonymAnalyzer();
+        analyzer.synonymMap.add(Arrays.asList("jumps"), SynonymMap
+                .makeTokens(Arrays.asList("jumps", "hops", "leaps")), false,
+                true);
+        analyzer.synonymMap.add(Arrays.asList("hops"), SynonymMap
+                .makeTokens(Arrays.asList("jumps", "hops", "leaps")), false,
+                true);
+        analyzer.synonymMap.add(Arrays.asList("leaps"), SynonymMap
+                .makeTokens(Arrays.asList("jumps", "hops", "leaps")), false,
+                true);
+        synonymMap = analyzer.synonymMap;
+    }
 
-		analyzer = new SynonymAnalyzer(synonymMap);
+    private void setupLocalSynonymMap() throws Exception {
+        synonymMap = new SynonymMap(true);
 
-		RAMDirectory directory = new RAMDirectory();
+        synonymMap.add(Arrays.asList("jumps"), SynonymMap.makeTokens(Arrays
+                .asList("jumps", "hops", "leaps")), false, true);
+        synonymMap.add(Arrays.asList("hops"), SynonymMap.makeTokens(Arrays
+                .asList("jumps", "hops", "leaps")), false, true);
+        synonymMap.add(Arrays.asList("leaps"), SynonymMap.makeTokens(Arrays
+                .asList("jumps", "hops", "leaps")), false, true);
 
-		IndexWriter writer = new IndexWriter(directory, analyzer,
-				IndexWriter.MaxFieldLength.UNLIMITED);
-		Document doc = new Document();
-		doc.add(new Field("content", INPUT, Field.Store.YES,
-				Field.Index.ANALYZED));
-		writer.addDocument(doc);
+        analyzer = new SynonymAnalyzer(synonymMap);
+    }
 
-		writer.close();
+    private void setupSearcher() throws Exception {
 
-		searcher = new IndexSearcher(directory, false);
+        RAMDirectory directory = new RAMDirectory();
 
-	}
+        IndexWriter writer = new IndexWriter(directory, analyzer,
+                IndexWriter.MaxFieldLength.UNLIMITED);
+        Document doc = new Document();
+        doc.add(new Field("content", INPUT, Field.Store.YES,
+                Field.Index.ANALYZED));
+        writer.addDocument(doc);
 
-	@After
-	public void tearDown() throws Exception {
-		searcher.close();
-	}
+        writer.close();
 
-	@Test
-	public void testTokens() throws Exception {
+        searcher = new IndexSearcher(directory, false);
 
-		String[] keywords = new String[] { "hops", "leaps" };
-		for (String keyword : keywords) {
-			List<Token> toks = getTokList(keyword, true);
-			Assert.assertEquals("unexpected tokens " + toks, 3, toks.size());
-			Assert.assertEquals("jumps", toks.get(0).term());
-			Assert.assertEquals("hops", toks.get(1).term());
-			Assert.assertEquals("leaps", toks.get(2).term());
-		}
-	}
+    }
 
-	@Test
-	public void testSearchByAPI() throws Exception {
+    @After
+    public void tearDown() throws Exception {
+        if (searcher != null) {
+            searcher.close();
+        }
+    }
 
-		String[] keywords = new String[] { "jumps", "hops", "leaps" };
-		for (String keyword : keywords) {
-			TermQuery tq = new TermQuery(new Term("content", keyword));
-			Assert.assertEquals("unexpected result for " + keyword + " using "
-					+ synonymMap, 1, LuceneTestUtils.hitCount(searcher, tq));
+    @Test(expected = NullPointerException.class)
+    public void testNullMap() {
+        new SynonymAnalyzer(null);
+    }
 
-			PhraseQuery pq = new PhraseQuery();
-			pq.add(new Term("content", keyword));
-			Assert.assertEquals("unexpected result for " + keyword, 1,
-					LuceneTestUtils.hitCount(searcher, pq));
-		}
-	}
+    @Test
+    public void testDefaultTokens() throws Exception {
+        setupDefaultSynonymMap();
+        setupSearcher();
+        String[] keywords = new String[] { "hops", "leaps" };
+        for (String keyword : keywords) {
+            List<Token> toks = getTokList(keyword, true);
+            List<String> strTokens = new ArrayList<String>();
+            for (Token t : toks) {
+                strTokens.add(t.term());
+            }
+            Assert.assertTrue(strTokens.contains("jumps"));
+            Assert.assertTrue(strTokens.contains("hops"));
+            Assert.assertTrue(strTokens.contains("leaps"));
+        }
+    }
 
-	SynonymFilter getFilter(String input) {
-		final List<Token> toks = LuceneUtils.tokens(input);
-		TokenStream ts = new TokenStream() {
-			Iterator<Token> iter = toks.iterator();
+    @Test
+    public void testLocalTokens() throws Exception {
+        setupLocalSynonymMap();
+        setupSearcher();
+        String[] keywords = new String[] { "hops", "leaps" };
+        for (String keyword : keywords) {
+            List<Token> toks = getTokList(keyword, true);
+            Assert.assertEquals("unexpected tokens " + toks, 3, toks.size());
+            Assert.assertEquals("jumps", toks.get(0).term());
+            Assert.assertEquals("hops", toks.get(1).term());
+            Assert.assertEquals("leaps", toks.get(2).term());
+        }
+    }
 
-			@Override
-			public Token next() throws IOException {
-				return iter.hasNext() ? (Token) iter.next() : null;
-			}
-		};
+    @Test
+    public void testSearchByAPI() throws Exception {
+        setupLocalSynonymMap();
+        setupSearcher();
+        String[] keywords = new String[] { "jumps", "hops", "leaps" };
+        for (String keyword : keywords) {
+            TermQuery tq = new TermQuery(new Term("content", keyword));
+            Assert.assertEquals("unexpected result for " + keyword + " using "
+                    + synonymMap, 1, LuceneTestUtils.hitCount(searcher, tq));
 
-		return new SynonymFilter(ts, synonymMap);
-	}
+            PhraseQuery pq = new PhraseQuery();
+            pq.add(new Term("content", keyword));
+            Assert.assertEquals("unexpected result for " + keyword, 1,
+                    LuceneTestUtils.hitCount(searcher, pq));
+        }
+    }
 
-	List<Token> getTokList(String input, boolean includeOrig)
-			throws IOException {
-		List<Token> lst = new ArrayList<Token>();
+    SynonymFilter getFilter(String input) {
+        final List<Token> toks = LuceneUtils.tokens(input);
+        TokenStream ts = new TokenStream() {
+            Iterator<Token> iter = toks.iterator();
 
-		SynonymFilter sf = getFilter(input);
+            @Override
+            public Token next() throws IOException {
+                return iter.hasNext() ? (Token) iter.next() : null;
+            }
+        };
 
-		Token target = new Token();
-		while (true) {
-			Token t = sf.next(target);
-			if (t == null)
-				break;
-			lst.add((Token) t.clone());
-		}
-		return lst;
-	}
+        return new SynonymFilter(ts, synonymMap);
+    }
+
+    List<Token> getTokList(String input, boolean includeOrig)
+            throws IOException {
+        if (input == null) {
+            throw new NullPointerException("input is not specified");
+        }
+        List<Token> lst = new ArrayList<Token>();
+
+        SynonymFilter sf = getFilter(input);
+
+        Token target = new Token();
+        while (true) {
+            Token t = sf.next(target);
+            if (t == null) {
+                break;
+            }
+            lst.add((Token) t.clone());
+
+        }
+        return lst;
+    }
 
 }

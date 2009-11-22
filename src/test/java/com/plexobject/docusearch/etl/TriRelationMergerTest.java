@@ -58,6 +58,16 @@ public class TriRelationMergerTest {
     public void tearDown() throws Exception {
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public final void testFileConstructor() throws IOException {
+        new TriRelationMerger(File.createTempFile("tmp", "tmp"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public final void testPropertiesConstructor() throws IOException {
+        new TriRelationMerger(new Properties());
+    }
+
     @Test
     public final void testMergeListOfDocument() {
     }
@@ -85,12 +95,26 @@ public class TriRelationMergerTest {
         Assert.assertNotNull(merger);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public final void testCreateMergerWithoutMergeColumns() {
+        Properties props = new Properties();
+        props.put("join.database", "join");
+        TriRelationMerger merger = new TriRelationMerger(repository, props);
+        Assert.assertNotNull(merger);
+    }
+
+    public final void testUsage() throws IOException {
+        TriRelationMerger.main(new String[0]);
+    }
+
     @SuppressWarnings("serial")
     @Test
     public final void testRun() {
-        EasyMock.expect(repository.getAllDocuments(JOIN_DB_NAME, null, null, LIMIT))
+        EasyMock.expect(
+                repository.getAllDocuments(JOIN_DB_NAME, null, null, LIMIT))
                 .andReturn(PagedList.asList(joinDoc1, joinDoc2));
-        EasyMock.expect(repository.getAllDocuments(JOIN_DB_NAME, "6", null, LIMIT))
+        EasyMock.expect(
+                repository.getAllDocuments(JOIN_DB_NAME, "6", null, LIMIT))
                 .andReturn(PagedList.<Document> emptyList());
         EasyMock.expect(repository.getDocument(DB_NAME, "microsoft"))
                 .andReturn(fromDoc1); // search by tag_id

@@ -24,6 +24,7 @@ import com.plexobject.docusearch.jmx.impl.ServiceJMXBeanImpl;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
 import com.plexobject.docusearch.persistence.RepositoryFactory;
+import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.QueryPolicy;
 import com.plexobject.docusearch.service.ConfigurationService;
 
@@ -114,18 +115,18 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
             return Response.ok(jsonPolicy.toString()).build();
         } catch (PersistenceException e) {
-            LOGGER.error("failed to get index policy for " + index, e);
+            LOGGER.error("failed to get query policy for " + index, e);
             mbean.incrementError();
             final int errorCode = e.getErrorCode() == 0 ? 500 : e
                     .getErrorCode();
             return Response.status(errorCode).type("text/plain").entity(
-                    "failed to get index policy for " + index + "\n").build();
+                    "failed to get index query for " + index + "\n").build();
         } catch (Exception e) {
-            LOGGER.error("failed to get index policy for " + index, e);
+            LOGGER.error("failed to get query policy for " + index, e);
             mbean.incrementError();
             return Response.status(RestClient.SERVER_INTERNAL_ERROR).type(
                     "text/plain").entity(
-                    "failed to get index policy for " + index + "\n").build();
+                    "failed to get index query for " + index + "\n").build();
         }
     }
 
@@ -232,4 +233,84 @@ public class ConfigurationServiceImpl implements ConfigurationService {
                     .build();
         }
     }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes( { MediaType.WILDCARD })
+    @Path("/lookup/{index}")
+    @Override
+    public Response getLookupPolicy(@PathParam("index") final String index) {
+        if (GenericValidator.isBlankOrNull(index)) {
+            return Response.status(RestClient.CLIENT_ERROR_BAD_REQUEST).type(
+                    "text/plain").entity("index not specified").build();
+        }
+        try {
+            final LookupPolicy policy = configRepository.getLookupPolicy(index);
+            final JSONObject jsonPolicy = Converters.getInstance()
+                    .getConverter(LookupPolicy.class, JSONObject.class)
+                    .convert(policy);
+            mbean.incrementRequests();
+
+            return Response.ok(jsonPolicy.toString()).build();
+        } catch (PersistenceException e) {
+            LOGGER.error("failed to get lookup policy for " + index, e);
+            mbean.incrementError();
+            final int errorCode = e.getErrorCode() == 0 ? 500 : e
+                    .getErrorCode();
+            return Response.status(errorCode).type("text/plain").entity(
+                    "failed to get lookup policy for " + index + "\n").build();
+        } catch (Exception e) {
+            LOGGER.error("failed to get lookup policy for " + index, e);
+            mbean.incrementError();
+            return Response.status(RestClient.SERVER_INTERNAL_ERROR).type(
+                    "text/plain").entity(
+                    "failed to get lookup policy for " + index + "\n").build();
+        }
+    }
+
+    @PUT
+    @Produces("application/json")
+    @Consumes( { MediaType.WILDCARD })
+    @Path("/lookup/{index}")
+    @Override
+    public Response saveLookupPolicy(@PathParam("index") final String index,
+            String jsonPolicy) {
+        if (GenericValidator.isBlankOrNull(index)) {
+            return Response.status(RestClient.CLIENT_ERROR_BAD_REQUEST).type(
+                    "text/plain").entity("index not specified").build();
+        }
+        if (GenericValidator.isBlankOrNull(jsonPolicy)) {
+            return Response.status(RestClient.CLIENT_ERROR_BAD_REQUEST).type(
+                    "text/plain").entity("jsonPolicy not specified").build();
+        }
+        try {
+            final LookupPolicy policy = Converters.getInstance().getConverter(
+                    JSONObject.class, LookupPolicy.class).convert(
+                    new JSONObject(jsonPolicy));
+            final LookupPolicy savedPolicy = configRepository.saveLookupPolicy(
+                    index, policy);
+            final JSONObject jsonRes = Converters.getInstance().getConverter(
+                    QueryPolicy.class, JSONObject.class).convert(savedPolicy);
+            mbean.incrementRequests();
+
+            return Response.status(RestClient.OK_CREATED).entity(
+                    jsonRes.toString()).build();
+        } catch (PersistenceException e) {
+            LOGGER.error("failed to save lookup policy for " + jsonPolicy, e);
+            mbean.incrementError();
+            final int errorCode = e.getErrorCode() == 0 ? 500 : e
+                    .getErrorCode();
+            return Response.status(errorCode).type("text/plain").entity(
+                    "failed to save lookup policy for " + jsonPolicy + "\n")
+                    .build();
+        } catch (Exception e) {
+            LOGGER.error("failed to get lookup policy for " + jsonPolicy, e);
+            mbean.incrementError();
+            return Response.status(RestClient.SERVER_INTERNAL_ERROR).type(
+                    "text/plain").entity(
+                    "failed to get query lookup for " + jsonPolicy + "\n")
+                    .build();
+        }
+    }
+
 }

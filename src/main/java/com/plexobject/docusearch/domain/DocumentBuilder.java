@@ -63,8 +63,8 @@ public class DocumentBuilder implements Builder<Document> {
         if (name.length() == 0) {
             throw new IllegalArgumentException("Length of name is zero");
         }
-        if (!(value instanceof String) && !(value instanceof Collection)
-                && !(value instanceof Boolean) && !(value instanceof Number)
+        if (!(value instanceof String) && !(value instanceof Boolean)
+                && !(value instanceof Collection) && !(value instanceof Number)
                 && !(value instanceof Map)) {
             throw new ClassCastException("Illegal type ["
                     + value.getClass().getName()

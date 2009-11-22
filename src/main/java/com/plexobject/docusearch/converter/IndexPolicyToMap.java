@@ -29,6 +29,7 @@ public class IndexPolicyToMap implements
 			value.put(Constants.BOOST, policy.getBoost());
 			value.put(Constants.ANALYZER, policy.getAnalyzer());
 			value.put(Constants.ADD_TO_DICTIONARY, policy.isAddToDictionary());
+			value.put(Constants.OWNER, policy.getOwner());
 			final List<Object> mapFields = new ArrayList<Object>();
 			for (IndexPolicy.Field field : policy.getFields()) {
 				final Map<String, Object> mapField = new HashMap<String, Object>();

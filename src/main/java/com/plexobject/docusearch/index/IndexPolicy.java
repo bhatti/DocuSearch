@@ -9,16 +9,19 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import com.plexobject.docusearch.converter.Constants;
+
 /**
  * @author Shahzad Bhatti
  * 
  */
 public class IndexPolicy {
-    private final Map<String, Field> fields = new HashMap<String, Field>();
+    private final Map<String, Field> fields = new TreeMap<String, Field>();
     private int score;
     private float boost;
     private String analyzer;
     private boolean addToDictionary;
+    private String owner = Constants.ALL_OWNER;
 
     public static class Field implements Comparable<Field> {
         public final String name;
@@ -145,6 +148,18 @@ public class IndexPolicy {
         return addToDictionary;
     }
 
+    public void setOwner(final String owner) {
+        this.owner = owner == null ? Constants.ALL_OWNER : owner;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public boolean hasOwner() {
+        return owner != null && owner.length() > 0;
+    }
+
     /**
      * @see java.lang.Object#equals(Object)
      */
@@ -156,9 +171,8 @@ public class IndexPolicy {
         IndexPolicy rhs = (IndexPolicy) object;
 
         return new EqualsBuilder().append(this.score, rhs.score).append(
-                this.boost, rhs.boost).append(
-                new TreeMap<String, Field>(this.fields),
-                new TreeMap<String, Field>(rhs.fields)).isEquals();
+                this.boost, rhs.boost).append(this.fields, rhs.fields)
+                .isEquals();
     }
 
     /**
@@ -177,8 +191,8 @@ public class IndexPolicy {
     public String toString() {
         return new ToStringBuilder(this).append("score", this.score).append(
                 "boost", boost).append("addToDictionary", this.addToDictionary)
-                .append("analyzer", this.analyzer).append("fields", fields)
-                .toString();
+                .append("analyzer", this.analyzer).append("owner", owner)
+                .append("fields", fields).toString();
     }
 
 }

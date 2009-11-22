@@ -62,7 +62,7 @@ public class DocumentsDatabaseSearcherTest {
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
-        searcher.query(DB_NAME, "keywords", true, 0, MAX_LIMIT);
+        searcher.query(DB_NAME, "owner", "keywords", true, 0, MAX_LIMIT);
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
     }
@@ -73,7 +73,7 @@ public class DocumentsDatabaseSearcherTest {
                 newQueryPolicy());
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
-        searcher.query(DB_NAME, "keywords", true, 0, MAX_LIMIT);
+        searcher.query(DB_NAME, "owner", "keywords", true, 0, MAX_LIMIT);
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
     }

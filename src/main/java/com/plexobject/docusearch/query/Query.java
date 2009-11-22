@@ -1,6 +1,7 @@
 package com.plexobject.docusearch.query;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * This interface searches index for the given keywords
@@ -29,7 +30,22 @@ public interface Query {
 
     /**
      * 
-     * @param docId
+     * @param criteria
+     *            - criteria with partial keywords for lookup
+     * @param policy
+     *            - query policy
+     * @param limit
+     *            - max # of results
+     * @return List of matches document fields.
+     */
+    List<String> partialLookup(QueryCriteria criteria, LookupPolicy policy,
+            int limit);
+
+    /**
+     * 
+     * @param externalId
+     *            - external document id to compare and dedup
+     * @param luceneId
      *            - internal document id (Lucene) to compare
      * @param policy
      *            - query policy
@@ -40,10 +56,9 @@ public interface Query {
      * @return collection of maps, where each map stores information about the
      *         document fields.
      */
-    SearchDocList moreLikeThis(int docId, QueryPolicy policy,
-            int start, int limit);
-    
-    
+    SearchDocList moreLikeThis(String externalId, int luceneId,
+            QueryPolicy policy, int start, int limit);
+
     /**
      * 
      * @param criteria

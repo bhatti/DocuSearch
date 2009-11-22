@@ -49,8 +49,8 @@ public class TriRelationMerger extends BaseRelationMerger {
         if (GenericValidator.isBlankOrNull(joinDatabase)) {
             throw new IllegalArgumentException("joinDatabase not specified");
         }
-        final String mergeColumsn = props.getProperty("join.merge.columns");
-        joinColumnsToMerge = mergeColumsn != null ? mergeColumsn.split(",")
+        final String mergeColumns = props.getProperty("join.merge.columns");
+        joinColumnsToMerge = mergeColumns != null ? mergeColumns.split(",")
                 : new String[0];
         if ((fromColumnsToMerge == null || fromColumnsToMerge.length == 0)
                 && (joinColumnsToMerge == null || joinColumnsToMerge.length == 0)) {
@@ -87,7 +87,7 @@ public class TriRelationMerger extends BaseRelationMerger {
     private static void usage() {
         System.err.println("Usage: <config-file-name>");
         System.err
-                .println("   e.g. mvn exec:java -Dexec.mainClass=\"com.plexobject.docusearch.etl.TriRelationMerger\" -Dexec.args=\"data/merge_data.properties\"");
+                .println("   e.g. mvn exec:java -Dexec.mainClass=\"com.plexobject.docusearch.etl.TriRelationMerger\" -Dexec.args=\"data/merge_test_datum_tags.properties\"");
         System.exit(1);
     }
 

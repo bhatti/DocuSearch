@@ -87,7 +87,7 @@ public class DocumentsDatabaseIndexer {
 
     public void indexDatabases(final String[] dbs) {
         for (String db : dbs) {
-            indexUsingPrimaryDatabase(db);
+                indexUsingPrimaryDatabase(db);
         }
 
     }

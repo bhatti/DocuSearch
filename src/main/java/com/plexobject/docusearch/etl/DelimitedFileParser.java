@@ -124,8 +124,8 @@ public abstract class DelimitedFileParser implements Runnable {
             numLine++;
         }
         line = lineBuffer.toString();
-        if (numColumns != headerColumns.length) {
-            LOGGER.warn("Expected " + headerColumns.length + ", but found "
+        if (numColumns != headerColumns.length && LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Expected " + headerColumns.length + ", but found "
                     + numColumns + " for row # " + numRow + ": " + line);
 
         }

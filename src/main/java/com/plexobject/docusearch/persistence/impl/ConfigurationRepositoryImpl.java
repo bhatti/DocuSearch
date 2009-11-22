@@ -9,88 +9,123 @@ import com.plexobject.docusearch.index.IndexPolicy;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
+import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.QueryPolicy;
 
 public class ConfigurationRepositoryImpl implements ConfigurationRepository {
-	private static final String QUERY_POLICY = "query_policy_for_";
-	private static final String INDEX_POLICY = "index_policy_for_";
-	private final String database;
-	private final DocumentRepository repository;
+    private static final String LOOKUP_POLICY = "lookup_policy_for_";
+    private static final String QUERY_POLICY = "query_policy_for_";
+    private static final String INDEX_POLICY = "index_policy_for_";
+    private final String database;
+    private final DocumentRepository repository;
 
-	public ConfigurationRepositoryImpl(final String database,
-			final DocumentRepository repository) {
-		this.database = database;
-		this.repository = repository;
-		try {
-			repository.createDatabase(database);
-		} catch (PersistenceException e) {
-		}
-	}
+    public ConfigurationRepositoryImpl(final String database,
+            final DocumentRepository repository) {
+        this.database = database;
+        this.repository = repository;
+        try {
+            repository.createDatabase(database);
+        } catch (PersistenceException e) {
+        }
+    }
 
-	@Override
-	public IndexPolicy getIndexPolicy(String id) throws PersistenceException {
-		Document doc = repository.getDocument(database, toIndexPolicyId(id));
-		return Converters.getInstance().getConverter(Map.class,
-				IndexPolicy.class).convert(doc);
+    @Override
+    public IndexPolicy getIndexPolicy(String id) throws PersistenceException {
+        Document doc = repository.getDocument(database, toIndexPolicyId(id));
+        return Converters.getInstance().getConverter(Map.class,
+                IndexPolicy.class).convert(doc);
 
-	}
+    }
 
-	@Override
-	public QueryPolicy getQueryPolicy(String id) throws PersistenceException {
-		Document doc = repository.getDocument(database, toQueryPolicyId(id));
-		return Converters.getInstance().getConverter(Map.class,
-				QueryPolicy.class).convert(doc);
-	}
+    @Override
+    public QueryPolicy getQueryPolicy(String id) throws PersistenceException {
+        Document doc = repository.getDocument(database, toQueryPolicyId(id));
+        return Converters.getInstance().getConverter(Map.class,
+                QueryPolicy.class).convert(doc);
+    }
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public IndexPolicy saveIndexPolicy(String id, IndexPolicy policy)
-			throws PersistenceException {
-		Map map = Converters.getInstance().getConverter(IndexPolicy.class,
-				Map.class).convert(policy);
-		String rev = null;
-		try {
-			rev = repository.getDocument(database, toIndexPolicyId(id))
-					.getRevision();
-		} catch (PersistenceException e) {
-		}
+    @SuppressWarnings("unchecked")
+    @Override
+    public IndexPolicy saveIndexPolicy(String id, IndexPolicy policy)
+            throws PersistenceException {
+        Map map = Converters.getInstance().getConverter(IndexPolicy.class,
+                Map.class).convert(policy);
+        String rev = null;
+        try {
+            rev = repository.getDocument(database, toIndexPolicyId(id))
+                    .getRevision();
+        } catch (PersistenceException e) {
+        }
 
-		Document doc = new DocumentBuilder(database).putAll(map).setId(
-				toIndexPolicyId(id)).setRevision(rev).build();
-		doc = repository.saveDocument(doc);
-		return Converters.getInstance().getConverter(Map.class,
-				IndexPolicy.class).convert(doc);
+        Document doc = new DocumentBuilder(database).putAll(map).setId(
+                toIndexPolicyId(id)).setRevision(rev).build();
+        doc = repository.saveDocument(doc);
+        return Converters.getInstance().getConverter(Map.class,
+                IndexPolicy.class).convert(doc);
 
-	}
+    }
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public QueryPolicy saveQueryPolicy(String id, QueryPolicy policy)
-			throws PersistenceException {
-		Map map = Converters.getInstance().getConverter(QueryPolicy.class,
-				Map.class).convert(policy);
-		String rev = null;
-		try {
-			rev = repository.getDocument(database, toQueryPolicyId(id))
-					.getRevision();
+    @SuppressWarnings("unchecked")
+    @Override
+    public QueryPolicy saveQueryPolicy(String id, QueryPolicy policy)
+            throws PersistenceException {
+        Map map = Converters.getInstance().getConverter(QueryPolicy.class,
+                Map.class).convert(policy);
+        String rev = null;
+        try {
+            rev = repository.getDocument(database, toQueryPolicyId(id))
+                    .getRevision();
 
-		} catch (PersistenceException e) {
-		}
+        } catch (PersistenceException e) {
+        }
 
-		Document doc = new DocumentBuilder(database).putAll(map).setId(
-				toQueryPolicyId(id)).setRevision(rev).build();
+        Document doc = new DocumentBuilder(database).putAll(map).setId(
+                toQueryPolicyId(id)).setRevision(rev).build();
 
-		doc = repository.saveDocument(doc);
-		return Converters.getInstance().getConverter(Map.class,
-				QueryPolicy.class).convert(doc);
+        doc = repository.saveDocument(doc);
+        return Converters.getInstance().getConverter(Map.class,
+                QueryPolicy.class).convert(doc);
 
-	}
+    }
 
-	private static String toIndexPolicyId(final String id) {
-		return INDEX_POLICY + id;
-	}
+    private static String toIndexPolicyId(final String id) {
+        return INDEX_POLICY + id;
+    }
 
-	private static String toQueryPolicyId(final String id) {
-		return QUERY_POLICY + id;
-	}
+    private static String toQueryPolicyId(final String id) {
+        return QUERY_POLICY + id;
+    }
+
+    private static String toLookupPolicyId(final String id) {
+        return LOOKUP_POLICY + id;
+    }
+
+    @Override
+    public LookupPolicy getLookupPolicy(String id) throws PersistenceException {
+        Document doc = repository.getDocument(database, toLookupPolicyId(id));
+        return Converters.getInstance().getConverter(Map.class,
+                LookupPolicy.class).convert(doc);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public LookupPolicy saveLookupPolicy(String id, LookupPolicy policy)
+            throws PersistenceException {
+        Map map = Converters.getInstance().getConverter(QueryPolicy.class,
+                Map.class).convert(policy);
+        String rev = null;
+        try {
+            rev = repository.getDocument(database, toLookupPolicyId(id))
+                    .getRevision();
+
+        } catch (PersistenceException e) {
+        }
+
+        Document doc = new DocumentBuilder(database).putAll(map).setId(
+                toLookupPolicyId(id)).setRevision(rev).build();
+
+        doc = repository.saveDocument(doc);
+        return Converters.getInstance().getConverter(Map.class,
+                LookupPolicy.class).convert(doc);
+    }
 }

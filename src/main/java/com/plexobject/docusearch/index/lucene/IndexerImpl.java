@@ -26,6 +26,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
+import com.plexobject.docusearch.converter.Constants;
 import com.plexobject.docusearch.converter.Converters;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.Tuple;
@@ -145,6 +146,10 @@ public class IndexerImpl implements Indexer {
                 Field.Store.YES, Field.Index.NOT_ANALYZED));
         ldoc.add(new Field(Document.ID, doc.getId(), Field.Store.YES,
                 Field.Index.NOT_ANALYZED));
+        if (policy.hasOwner()) {
+            ldoc.add(new Field(Constants.OWNER, policy.getOwner(),
+                    Field.Store.YES, Field.Index.NOT_ANALYZED));
+        }
 
         ldoc.add(new Field("indexDate", DateTools.dateToString(new Date(),
                 DateTools.Resolution.DAY), Field.Store.YES,
@@ -197,8 +202,8 @@ public class IndexerImpl implements Indexer {
                         SimilarityHelper.getInstance().trainSpellChecker(
                                 indexName, value);
                     }
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Indexing " + name + " using " + locField
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Indexing " + name + " using " + locField
                                 + ", doc " + doc + ", policy " + policy);
                     }
                 }
@@ -245,9 +250,6 @@ public class IndexerImpl implements Indexer {
         } else {
             Term idTerm = new Term(Document.ID, doc.getId());
             writer.updateDocument(idTerm, ldoc);
-            LOGGER.info(numIndexed + ": Updating Index " + ldoc
-                    + " newDocument " + newDocument + " for input " + doc
-                    + " with policy " + policy);
         }
 
         if (++numIndexed % 1000 == 0 && LOGGER.isInfoEnabled()) {

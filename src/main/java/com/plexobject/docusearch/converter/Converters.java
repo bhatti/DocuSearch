@@ -12,6 +12,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.index.IndexPolicy;
+import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.QueryPolicy;
 import com.plexobject.docusearch.query.RankedTerm;
 
@@ -86,6 +87,12 @@ public final class Converters {
         register(JSONObject.class, QueryPolicy.class, new JsonToQueryPolicy());
         register(QueryPolicy.class, Map.class, new QueryPolicyToMap());
         register(Map.class, QueryPolicy.class, new MapToQueryPolicy());
+
+        //
+        register(LookupPolicy.class, JSONObject.class, new LookupPolicyToJson());
+        register(JSONObject.class, LookupPolicy.class, new JsonToLookupPolicy());
+        register(LookupPolicy.class, Map.class, new LookupPolicyToMap());
+        register(Map.class, LookupPolicy.class, new MapToLookupPolicy());
 
         //
         register(RankedTerm.class, JSONObject.class, new RankedTermToJson());

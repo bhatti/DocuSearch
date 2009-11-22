@@ -36,6 +36,9 @@ public class JsonToIndexPolicy implements Converter<JSONObject, IndexPolicy> {
                 if (value.has(Constants.ADD_TO_DICTIONARY)) {
                     policy.setAddToDictionary(Boolean.valueOf(value.getString(Constants.ADD_TO_DICTIONARY)));
                 }
+                if (value.has(Constants.OWNER)) {
+                    policy.setOwner(value.getString(Constants.OWNER));
+                }
                 final JSONArray fields = value.getJSONArray(Constants.FIELDS);
                 if (fields != null) {
                     final int len = fields.length();

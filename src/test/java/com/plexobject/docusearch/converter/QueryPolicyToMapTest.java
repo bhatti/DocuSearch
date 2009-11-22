@@ -62,7 +62,7 @@ public class QueryPolicyToMapTest {
         final QueryPolicy policy = new QueryPolicy();
 
         for (int i = 0; i < 10; i++) {
-            policy.add("name" + i, i, i % 2 == 1, 1.1F, false);
+            policy.add("name" + i, i, i % 2 == 1, 1.1F, QueryPolicy.FieldType.STRING);
         }
         return policy;
     }

@@ -10,6 +10,8 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.lucene.document.DateTools;
 
+import com.plexobject.docusearch.converter.Constants;
+
 public class QueryCriteria {
     public static final String KEYWORDS = "keywords";
     public static final String RECENCY_MAX_DAYS = "recencyMaxDays";
@@ -17,19 +19,21 @@ public class QueryCriteria {
     public static final String INDEX_DATE_BEGIN = "indexDateBegin";
     public static final String INDEX_DATE_END = "indexDateEnd";
     public static final String SCORE_QUERY = "scoreQuery";
+    public static final String OWNER = "owner";
 
     private final Map<String, String> options = new TreeMap<String, String>();
 
     public QueryCriteria() {
-
+        setOwner(Constants.ALL_OWNER);
     }
 
-    public void setScoreQuery() {
+    public QueryCriteria setScoreQuery() {
         options.put(SCORE_QUERY, String.valueOf(Boolean.TRUE));
+        return this;
     }
 
     public QueryCriteria setKeywords(final String keywords) {
-        options.put(KEYWORDS, keywords);
+        options.put(KEYWORDS, keywords.toLowerCase());
         return this;
     }
 
@@ -50,6 +54,19 @@ public class QueryCriteria {
 
     public boolean isScoreQuery() {
         return options.get(SCORE_QUERY) != null;
+    }
+
+    public String getOwner() {
+        return options.get(OWNER);
+    }
+
+    public boolean hasOwner() {
+        return options.get(OWNER) != null;
+    }
+
+    public QueryCriteria setOwner(final String owner) {
+        this.options.put(OWNER, owner == null ? Constants.ALL_OWNER : owner);
+        return this;
     }
 
     public String getKeywords() {

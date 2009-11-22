@@ -10,50 +10,31 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.validator.GenericValidator;
 import org.apache.log4j.Logger;
-import org.apache.lucene.document.DateTools;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermEnum;
 import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.CachingWrapperFilter;
-import org.apache.lucene.search.FieldCacheTermsFilter;
 import org.apache.lucene.search.Filter;
-import org.apache.lucene.search.FuzzyQuery;
-import org.apache.lucene.search.HitCollector;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.QueryWrapperFilter;
-import org.apache.lucene.search.RangeFilter;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.SortField;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.search.function.CustomScoreQuery;
-import org.apache.lucene.search.function.FieldScoreQuery;
 import org.apache.lucene.search.similar.MoreLikeThis;
 import org.apache.lucene.store.Directory;
 
 import com.plexobject.docusearch.Configuration;
 import com.plexobject.docusearch.SearchException;
-import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.Tuple;
 import com.plexobject.docusearch.lucene.LuceneUtils;
 import com.plexobject.docusearch.lucene.analyzer.BoostingSimilarity;
 import com.plexobject.docusearch.lucene.analyzer.SimilarityHelper;
 import com.plexobject.docusearch.metrics.Metric;
 import com.plexobject.docusearch.metrics.Timer;
+import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.Query;
 import com.plexobject.docusearch.query.QueryCriteria;
 import com.plexobject.docusearch.query.QueryPolicy;
@@ -66,70 +47,16 @@ import com.plexobject.docusearch.query.SearchDocList;
  * @author Shahzad Bhatti
  * 
  */
-@SuppressWarnings("deprecation")
 public class QueryImpl implements Query {
-
     private static final Logger LOGGER = Logger.getLogger(QueryImpl.class);
     private static final int MAX_LIMIT = Configuration.getInstance()
             .getPageSize();
-    private static final int MAX_MAX_DAYS = Configuration.getInstance()
-            .getInteger("lucene.recency.max.days", 2 * 365);
     private static final int DEFAULT_LIMIT = Configuration.getInstance()
             .getInteger("lucene.default.paging.size", 20);
-    private static final double DEFAULT_MULTIPLIER = Configuration
-            .getInstance().getDouble("lucene.recency.multiplier", 2.0);
-    private static final int MSEC_PER_DAY = 24 * 3600 * 1000;
 
-    static class RecencyBoostingQuery extends CustomScoreQuery {
-        private static final long serialVersionUID = 1L;
-        int[] daysAgo;
-        double multiplier;
-        int maxDaysAgo;
-
-        public RecencyBoostingQuery(org.apache.lucene.search.Query q,
-                int[] daysAgo, double multiplier, int maxDaysAgo) {
-            super(q);
-            this.daysAgo = daysAgo;
-            this.multiplier = multiplier;
-            this.maxDaysAgo = maxDaysAgo;
-        }
-
-        public float customScore(int doc, float subQueryScore, float valSrcScore) {
-            if (daysAgo[doc] < maxDaysAgo) {
-                float boost = (float) (multiplier * (maxDaysAgo - daysAgo[doc]) / maxDaysAgo);
-                return (float) (subQueryScore * (1.0 + boost));
-            } else {
-                return subQueryScore;
-            }
-        }
-
-        /**
-         * @see java.lang.Object#equals(Object)
-         */
-        @Override
-        public boolean equals(Object object) {
-            if (!(object instanceof RecencyBoostingQuery)) {
-                return false;
-            }
-            if (!super.equals(object)) {
-                return false;
-            }
-            RecencyBoostingQuery rhs = (RecencyBoostingQuery) object;
-            return new EqualsBuilder().append(this.daysAgo, rhs.daysAgo)
-                    .append(this.multiplier, rhs.multiplier).append(maxDaysAgo,
-                            rhs.maxDaysAgo).isEquals();
-        }
-
-        /**
-         * @see java.lang.Object#hashCode()
-         */
-        @Override
-        public int hashCode() {
-            return new HashCodeBuilder(786529047, 1924536713).append(this)
-                    .toHashCode();
-        }
-
-    };
+    enum QueryType {
+        DEFAULT, FUZZY, PREFIX, REGEX, WILDCARD, NUMBER_RANGE, TERM_RANGE, HIT
+    }
 
     private final IndexReader reader;
     private final IndexSearcher searcher;
@@ -156,13 +83,20 @@ public class QueryImpl implements Query {
     public SearchDocList search(final QueryCriteria criteria,
             final QueryPolicy policy, final boolean includeSuggestions,
             int start, int limit) {
-        Tuple tuple = doSearch(criteria, policy, includeSuggestions, false,
-                start, limit);
+        final boolean includeExplanation = false;
+        Tuple tuple = doSearch(criteria, policy, includeSuggestions,
+                includeExplanation, QueryType.DEFAULT, start, limit);
         final Integer total = tuple.first();
-        final ScoreDoc[] docs = tuple.second();
+        final double[][] docsAndScores = tuple.second();
         final Collection<String> similarWords = tuple.third();
         try {
-            return convert(searcher, start, limit, total, docs, similarWords);
+            final SearchDocList results = convert(start, limit, total,
+                    docsAndScores, similarWords);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("query " + criteria + " with policy " + policy
+                        + ", returned " + results);
+            }
+            return results;
         } catch (CorruptIndexException e) {
             throw new SearchException("failed to search " + criteria, e);
         } catch (IOException e) {
@@ -173,21 +107,60 @@ public class QueryImpl implements Query {
     @Override
     public Collection<String> explain(final QueryCriteria criteria,
             final QueryPolicy policy, final int start, final int limit) {
-        Tuple tuple = doSearch(criteria, policy, false, true, start, limit);
+        final boolean includeSuggestions = false;
+        final boolean includeExplanation = true;
+        Tuple tuple = doSearch(criteria, policy, includeSuggestions,
+                includeExplanation, QueryType.DEFAULT, start, limit);
         final Collection<String> explanations = tuple.last();
         return explanations;
     }
 
     @Override
-    public SearchDocList moreLikeThis(int docId, QueryPolicy policy, int start,
-            int limit) {
+    public List<String> partialLookup(QueryCriteria criteria,
+            LookupPolicy policy, int limit) {
+        final boolean includeSuggestions = false;
+        final boolean includeExplanation = false;
+        Tuple tuple = doSearch(criteria, policy, includeSuggestions,
+                includeExplanation, QueryType.PREFIX, 0, limit);
+        final Integer total = tuple.first();
+        final double[][] docsAndScores = tuple.second();
+        final Collection<String> similarWords = tuple.third();
+        try {
+            SearchDocList matches = convert(0, limit, total, docsAndScores,
+                    similarWords);
+            List<String> results = new ArrayList<String>();
+            for (SearchDoc doc : matches) {
+                final String keyword = (String) doc.get(policy
+                        .getFieldToReturn());
+                if (keyword != null) {
+                    results.add(keyword);
+                } else {
+                    LOGGER.warn("Could not find field "
+                            + policy.getFieldToReturn() + " in " + doc);
+                }
+            }
+            if (results.size() < limit) {
+                results.addAll(SimilarityHelper.getInstance().prefixMatch(
+                        index, criteria.getKeywords(), limit - results.size()));
+            }
+            return results;
+        } catch (CorruptIndexException e) {
+            throw new SearchException("failed to search " + criteria, e);
+        } catch (IOException e) {
+            throw new SearchException("failed to search " + criteria, e);
+        }
+    }
+
+    @Override
+    public SearchDocList moreLikeThis(String externalId, int luceneId,
+            QueryPolicy policy, int start, int limit) {
         final int maxDoc = reader.maxDoc();
-        if (docId >= maxDoc) {
+        if (luceneId >= maxDoc) {
             throw new IllegalArgumentException("docId exceeds # of documents "
                     + maxDoc);
         }
         if (start <= 0) {
-            start = 1;
+            start = 0;
         }
         if (limit <= 0) {
             limit = DEFAULT_LIMIT;
@@ -207,21 +180,36 @@ public class QueryImpl implements Query {
 
             if (LOGGER.isDebugEnabled()) {
                 final org.apache.lucene.document.Document doc = reader
-                        .document(docId);
+                        .document(luceneId);
                 LOGGER.debug("Finding similar documents for " + doc);
             }
 
-            final org.apache.lucene.search.Query query = mlt.like(docId);
+            final org.apache.lucene.search.Query query = mlt.like(luceneId);
 
-            final HitCollector hc = new HitPageCollector(start, limit);
-            searcher.search(query, null, hc);
-            final ScoreDoc[] docs = ((HitPageCollector) hc).getScores();
-            return convert(searcher, start, limit, ((HitPageCollector) hc)
-                    .getTotalAvailable(), docs, null);
+            final Tuple queryResults = new QueryUtils(reader, searcher)
+                    .doQuery(query, null, QueryUtils.getScore(policy), start,
+                            limit);
+            final double[][] docsAndScores = queryResults.second();
+            final Integer available = queryResults.first();
+
+            SearchDocList results = convert(start, limit, available,
+                    docsAndScores, null);
+
+            // remove all matches that include original search criteria
+            // including
+            // document id and lucene id
+            for (Iterator<SearchDoc> it = results.iterator(); it.hasNext();) {
+                final SearchDoc doc = it.next();
+                if (doc.getId().equals(externalId)
+                        || doc.getHitDocumentNumber() == luceneId) {
+                    it.remove();
+                }
+            }
+            return results;
         } catch (CorruptIndexException e) {
-            throw new SearchException("failed to moreLikeThis " + docId, e);
+            throw new SearchException("failed to moreLikeThis " + luceneId, e);
         } catch (IOException e) {
-            throw new SearchException("failed to moreLikeThis " + docId, e);
+            throw new SearchException("failed to moreLikeThis " + luceneId, e);
         } finally {
             if (searcher != null) {
                 try {
@@ -282,11 +270,13 @@ public class QueryImpl implements Query {
 
     }
 
+    // ///////////////////////////////////////////////////////////////
     private Tuple doSearch(final QueryCriteria criteria,
             final QueryPolicy policy, final boolean includeSuggestions,
-            final boolean includeExplanation, int start, int limit) {
+            final boolean includeExplanation, final QueryType queryType,
+            int start, int limit) {
         if (start <= 0) {
-            start = 1;
+            start = 0;
         }
         if (limit <= 0) {
             limit = DEFAULT_LIMIT;
@@ -301,39 +291,42 @@ public class QueryImpl implements Query {
                 : null;
         final Collection<String> explanations = includeExplanation ? new ArrayList<String>()
                 : null;
+        Filter filter = null;
         try {
-            org.apache.lucene.search.Query q = null;
+            org.apache.lucene.search.Query q = criteria.isScoreQuery() ? QueryUtils
+                    .createQuery(QueryType.HIT, null)
+                    : QueryUtils.keywordsQuery(index, criteria.getKeywords(),
+                            policy, similarWords, queryType);
 
-            if (criteria.isScoreQuery()) {
-                q = hitQuery(searcher);
-            } else if (criteria.hasKeywords()) {
-                q = keywordsQuery(searcher, criteria, policy, similarWords);
-            } else {
-                throw new SearchException("Illegal criteria " + criteria);
+            if (criteria.hasOwner()) {
+                filter = QueryUtils.securityFilter(criteria.getOwner());
             }
-
             if (criteria.hasRecency()) {
-                q = boostQuery(q, criteria.getRecencyMaxDays(), criteria
-                        .getRecencyFactor());
+                q = new QueryUtils(reader, searcher).boostQuery(q, criteria
+                        .getRecencyMaxDays(), criteria.getRecencyFactor());
 
             }
 
             if (criteria.hasIndexDateRange()) {
-                q = indexDateRange(q, criteria.getIndexStartDateRange(),
-                        criteria.getIndexEndDateRange());
+                q = QueryUtils.indexDateRange(q, criteria
+                        .getIndexStartDateRange(), criteria
+                        .getIndexEndDateRange());
 
             }
 
-            final HitCollector hc = new HitPageCollector(start, limit);
-            searcher.search(q, null, hc);
-            final ScoreDoc[] docs = ((HitPageCollector) hc).getScores();
+            final Tuple queryResults = new QueryUtils(reader, searcher)
+                    .doQuery(q, filter, QueryUtils.getScore(policy), start,
+                            limit);
+            final double[][] docsAndScores = queryResults.second();
+            final Integer available = queryResults.first();
             if (includeExplanation) {
-                for (ScoreDoc doc : docs) {
-                    explanations.add(searcher.explain(q, doc.doc).toString());
+                for (double[] docAndScore : docsAndScores) {
+                    explanations.add(searcher.explain(q, (int) docAndScore[0])
+                            .toString());
                 }
             }
-            return new Tuple(((HitPageCollector) hc).getTotalAvailable(), docs,
-                    similarWords, explanations);
+            return new Tuple(available, docsAndScores, similarWords,
+                    explanations);
         } catch (CorruptIndexException e) {
             throw new SearchException("failed to search " + criteria, e);
         } catch (IOException e) {
@@ -357,14 +350,20 @@ public class QueryImpl implements Query {
     }
 
     @SuppressWarnings("unchecked")
-    private SearchDocList convert(final IndexSearcher searcher,
-            final int start, final int pageSize, final int totalHits,
-            final ScoreDoc[] scoreDocs, final Collection<String> similarWords)
+    private SearchDocList convert(final int start, final int pageSize,
+            final int totalHits, final double[][] docsAndScores,
+            final Collection<String> similarWords)
             throws CorruptIndexException, IOException {
         final Collection<SearchDoc> results = new ArrayList<SearchDoc>();
-        for (ScoreDoc scoreDoc : scoreDocs) {
+        for (double[] docAndScore : docsAndScores) {
+            if (docAndScore == null) {
+                throw new NullPointerException("null docs for "
+                        + docsAndScores.length + ": " + docsAndScores);
+            }
+            final int doc = (int) docAndScore[0];
+            final float score = (float) docAndScore[1];
             final org.apache.lucene.document.Document searchDoc = reader
-                    .document(scoreDoc.doc);
+                    .document(doc);
             final List<Field> fields = searchDoc.getFields();
 
             final Map<String, Object> map = new HashMap<String, Object>();
@@ -372,8 +371,7 @@ public class QueryImpl implements Query {
                 map.put(field.name(), field.stringValue());
             }
             final SearchDoc result = new SearchDocBuilder().putAll(map)
-                    .setScore(scoreDoc.score).seHitDocumentNumber(scoreDoc.doc)
-                    .build();
+                    .setScore(score).seHitDocumentNumber(doc).build();
             if (!results.contains(result)) {
                 results.add(result);
             }
@@ -382,137 +380,5 @@ public class QueryImpl implements Query {
                 similarWords);
     }
 
-    private org.apache.lucene.search.Query hitQuery(final IndexSearcher searcher)
-            throws IOException {
-        return new FieldScoreQuery(SearchDoc.SCORE, FieldScoreQuery.Type.BYTE);
-
-    }
-
-    private org.apache.lucene.search.Query keywordsQuery(
-            final IndexSearcher searcher, final QueryCriteria criteria,
-            final QueryPolicy policy, final Collection<String> similarWords)
-            throws IOException, ParseException {
-        if (GenericValidator.isBlankOrNull(criteria.getKeywords())) {
-            throw new IllegalArgumentException("keywords not specified");
-        }
-        final BooleanQuery query = new BooleanQuery();
-        final boolean wildMatch = criteria.getKeywords().indexOf('*') != -1;
-        for (QueryPolicy.Field field : policy.getFields()) {
-            if (GenericValidator.isBlankOrNull(field.name)) {
-                throw new IllegalArgumentException(
-                        "field name not specified for " + field + " in policy "
-                                + policy);
-            }
-            final Term term = new Term(field.name, criteria.getKeywords());
-
-            final org.apache.lucene.search.Query q = wildMatch ? new WildcardQuery(
-                    term)
-                    : field.fuzzyMatch ? new FuzzyQuery(term) : new TermQuery(
-                            term);
-            if (field.boost != 0) {
-                q.setBoost(field.boost);
-            }
-            query.add(q, BooleanClause.Occur.SHOULD);
-        }
-        if (similarWords != null) {
-            final String similar = SimilarityHelper.getInstance().didYouMean(
-                    index, criteria.getKeywords());
-            if (similar != null) {
-                similarWords.add(similar);
-            }
-        }
-        // TermFreqVector vector = reader.getTermFreqVector(id, "name");
-        // TODO add sorting
-        return query;
-    }
-
-    private org.apache.lucene.search.Query boostQuery(
-            final org.apache.lucene.search.Query q, int maxDays,
-            double multiplier) throws IOException, ParseException,
-            java.text.ParseException {
-        if (maxDays <= 0) {
-            maxDays = searcher.maxDoc();
-        }
-        if (maxDays > MAX_MAX_DAYS) {
-            maxDays = MAX_MAX_DAYS;
-        }
-        if (multiplier == 0) {
-            multiplier = DEFAULT_MULTIPLIER;
-        }
-        final int[] daysAgo = new int[Math.min(searcher.maxDoc(), maxDays * 10)];
-        long now = System.currentTimeMillis();
-
-        for (int i = 0; i < daysAgo.length; i++) {
-            if (!reader.isDeleted(i)) {
-                long then = DateTools.stringToTime(reader.document(i).get(
-                        "indexDate"));
-
-                daysAgo[i] = (int) ((now - then) / MSEC_PER_DAY);
-            }
-        }
-        return new RecencyBoostingQuery(q, daysAgo, multiplier, maxDays);
-    }
-
-    private org.apache.lucene.search.Query indexDateRange(
-            org.apache.lucene.search.Query q, String indexStartDateRange,
-            String indexEndDateRange) {
-        // final RangeQuery rangeQuery = new RangeQuery(q, "indexDate",
-        // indexStartDateRange, indexEndDateRange, true, true);
-        // rangeQuery.setConstantScoreRewrite(true);
-        // return rangeQuery;
-        return null;
-    }
-
-    @SuppressWarnings("unused")
-    private Filter indexDateRangeFilter(final String indexStartDateRange,
-            final String indexEndDateRange) {
-        return new RangeFilter("indexDate", indexStartDateRange,
-                indexEndDateRange, true, true);
-    }
-
-    @SuppressWarnings("unused")
-    private Filter indexDateCachedFilter(final String indexStartDateRange,
-            final String indexEndDateRange) {
-        return new FieldCacheTermsFilter("indexDate", new String[] {
-                indexStartDateRange, indexEndDateRange });
-    }
-
-    @SuppressWarnings("unused")
-    private Filter securityFilter(final String owner) {
-        TermQuery securityFilter = new TermQuery(new Term("owner", owner));
-        return new QueryWrapperFilter(securityFilter);
-    }
-
-    @SuppressWarnings("unused")
-    private Filter cachingFilter(final Filter filter) {
-        return new CachingWrapperFilter(filter);
-    }
-
-    @SuppressWarnings("unused")
-    private Sort getScore(final QueryPolicy policy) {
-        List<SortField> scores = new ArrayList<SortField>();
-        scores.add(SortField.FIELD_SCORE);
-        for (QueryPolicy.Field field : policy.getFields()) {
-            if (field.sortOrder > 0) {
-                scores.add(SortField.FIELD_DOC);
-            }
-        }
-        for (QueryPolicy.Field field : policy.getFields()) {
-            if (field.sortOrder > 0) {
-                scores.set(field.sortOrder, new SortField(field.name,
-                        field.ascendingSort));
-            }
-        }
-        return new Sort(scores.toArray(new SortField[scores.size()]));
-    }
-
-    public boolean existsDocument(final String id) {
-        Term term = new Term(Document.ID, id);
-        try {
-            return searcher.docFreq(term) > 0;
-        } catch (IOException ie) {
-        }
-        return false;
-    }
     // TODO Do we need SpanQuery, PerFieldAnalyzerWrapper?
 }

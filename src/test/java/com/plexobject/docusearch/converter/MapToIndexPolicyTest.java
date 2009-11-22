@@ -36,6 +36,7 @@ public class MapToIndexPolicyTest {
         Assert.assertEquals(10, policy.getScore());
         Assert.assertEquals(20.5, policy.getBoost(), 0.0001);
         Assert.assertEquals("std", policy.getAnalyzer());
+        Assert.assertEquals("shahbhat", policy.getOwner());
         Assert.assertTrue("failed to find dictionary in " + map, policy
                 .isAddToDictionary());
 
@@ -67,6 +68,7 @@ public class MapToIndexPolicyTest {
         map.put(Constants.SCORE, 10);
         map.put(Constants.BOOST, 20.5);
         map.put(Constants.ANALYZER, "std");
+        map.put(Constants.OWNER, "shahbhat");
         map.put(Constants.ADD_TO_DICTIONARY, Boolean.TRUE);
         final Collection<Map<String, Object>> fields = new ArrayList<Map<String, Object>>();
         for (int i = 0; i < 10; i++) {

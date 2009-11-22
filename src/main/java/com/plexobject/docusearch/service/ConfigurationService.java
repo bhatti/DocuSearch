@@ -23,6 +23,15 @@ public interface ConfigurationService {
     Response getQueryPolicy(String index);
 
     /**
+     * This method fetches lookup policy for given index
+     * 
+     * @param index
+     * @param id
+     * @return lookup policy
+     */
+    Response getLookupPolicy(String index);
+
+    /**
      * This method saves index policy for given index
      * 
      * @param index
@@ -40,4 +49,12 @@ public interface ConfigurationService {
      */
     public Response saveQueryPolicy(String index, String policy);
 
+    /**
+     * This method saves lookup policy for given index
+     * 
+     * @param index
+     * @param policy
+     * @return response code
+     */
+    public Response saveLookupPolicy(String index, String policy);
 }

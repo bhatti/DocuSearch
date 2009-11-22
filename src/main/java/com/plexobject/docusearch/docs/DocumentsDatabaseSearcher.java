@@ -42,20 +42,20 @@ public class DocumentsDatabaseSearcher {
     }
 
     public Collection<Document> query(final String database,
-            final String keywords, final boolean includeSuggestions,
+            final String owner, final String keywords, final boolean includeSuggestions,
             final int startKey, final int limit) {
         final File dir = new File(LuceneUtils.INDEX_DIR, database);
-        return query(database, LuceneUtils.toFSDirectory(dir), keywords,
+        return query(database, LuceneUtils.toFSDirectory(dir), owner, keywords,
                 includeSuggestions, startKey, limit);
     }
 
     public Collection<Document> query(final String database,
-            final Directory dir, final String keywords,
+            final Directory dir, final String owner, final String keywords,
             final boolean includeSuggestions, final int startKey,
             final int limit) {
         final Timer timer = Metric.newTimer("DocumentsDatabaseSearcher.query");
         final QueryCriteria criteria = new QueryCriteria()
-                .setKeywords(keywords);
+                .setKeywords(keywords).setOwner(owner);
         final Query query = new QueryImpl(dir, database);
         QueryPolicy policy = configRepository.getQueryPolicy(database);
 
@@ -80,8 +80,9 @@ public class DocumentsDatabaseSearcher {
         root.addAppender(new ConsoleAppender(new PatternLayout(
                 PatternLayout.TTCC_CONVERSION_PATTERN)));
 
-        final String database = args.length > 0 ? args[0] : "data";
-        final String keywords = args.length > 1 ? args[1] : "Pope";
+        final String database = args.length > 0 ? args[0] : "test_data";
+        final String keywords = args.length > 1 ? args[1] : "keywords";
+        final String owner = args.length > 2 ? args[2] : "shahbhat";
 
         int startKey = 0;
         int i = 0;
@@ -90,7 +91,7 @@ public class DocumentsDatabaseSearcher {
         final DocumentsDatabaseSearcher searcher = new DocumentsDatabaseSearcher(
                 new RepositoryFactory());
 
-        while ((docs = searcher.query(database, keywords, true, startKey,
+        while ((docs = searcher.query(database, owner, keywords, true, startKey,
                 MAX_LIMIT)).size() > 0) {
             for (Document doc : docs) {
                 LOGGER.info(i + "th " + doc);

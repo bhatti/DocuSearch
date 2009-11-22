@@ -107,12 +107,12 @@ public class SearchDocList implements List<SearchDoc> {
 
     @Override
     public boolean remove(final Object o) {
-        throw new UnsupportedOperationException();
+        return docs.remove(o);
     }
 
     @Override
     public SearchDoc remove(final int index) {
-        throw new UnsupportedOperationException();
+        return docs.remove(index);
     }
 
     @Override

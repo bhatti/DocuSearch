@@ -28,6 +28,7 @@ public class IndexPolicyToJson implements Converter<IndexPolicy, JSONObject> {
 				value.put(Constants.BOOST, policy.getBoost());
 				value.put(Constants.ANALYZER, policy.getAnalyzer());
 				value.put(Constants.ADD_TO_DICTIONARY, policy.isAddToDictionary());
+				value.put(Constants.OWNER, policy.getOwner());
 				final JSONArray jsonFields = new JSONArray();
 				for (IndexPolicy.Field field : policy.getFields()) {
 					JSONObject jsonField = new JSONObject();

@@ -74,7 +74,7 @@ public final class LuceneUtils {
                 }
             }
         }
- 
+
         return defaultAnalyzer;
     }
 

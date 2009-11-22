@@ -12,7 +12,7 @@
         <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
         <init-param>
             <param-name>com.sun.jersey.config.property.packages</param-name>
-            <param-value>com.plexobject.os.service.impl</param-value>
+            <param-value>com.plexobject.docusearch.service.impl</param-value>
         </init-param>
 
         <load-on-startup>1</load-on-startup>

@@ -17,14 +17,14 @@ import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.solr.analysis.SynonymFilter;
 import org.apache.solr.analysis.SynonymMap;
 
-
 public class SynonymAnalyzer extends Analyzer {
     private static Logger LOGGER = Logger.getLogger(SynonymAnalyzer.class);
     private static final String SYNONYMS_DATA = "synonyms.properties";
     final SynonymMap synonymMap;
+    final static SynonymMap defaultSynonymMap = getDefaultSynonymMap();
 
     public SynonymAnalyzer() {
-        this(getDefaultSynonymMap());
+        this(defaultSynonymMap);
     }
 
     public SynonymAnalyzer(final SynonymMap synonymMap) {
@@ -34,6 +34,7 @@ public class SynonymAnalyzer extends Analyzer {
         this.synonymMap = synonymMap;
     }
 
+    @SuppressWarnings("deprecation")
     public TokenStream tokenStream(String fieldName, Reader reader) {
         TokenStream result = new SynonymFilter(new StopFilter(true,
                 new LowerCaseFilter(new StandardFilter(new StandardTokenizer(
@@ -41,7 +42,7 @@ public class SynonymAnalyzer extends Analyzer {
         return result;
     }
 
-    static SynonymMap getDefaultSynonymMap() {
+    private static SynonymMap getDefaultSynonymMap() {
         final boolean ignoreCase = true;
         final SynonymMap synMap = new SynonymMap(ignoreCase);
 
@@ -57,13 +58,16 @@ public class SynonymAnalyzer extends Analyzer {
             for (String name : synDefs.stringPropertyNames()) {
                 final String replacement = name.trim();
                 final String match = synDefs.getProperty(name).trim();
-                final boolean orig = false;
-                final boolean merge = true;
-                synMap.add(Arrays.asList(match), SynonymMap.makeTokens(Arrays
-                        .asList(replacement)), orig, merge);
+                if (!replacement.equalsIgnoreCase(match)) {
+                    final boolean orig = false;
+                    final boolean merge = true;
+                    synMap.add(Arrays.asList(match), SynonymMap
+                            .makeTokens(Arrays.asList(replacement)), orig,
+                            merge);
+                }
             }
             if (LOGGER.isInfoEnabled()) {
-                LOGGER.info("Added " + synDefs.size() + " synonyms");
+                LOGGER.info("Added " + synDefs.size() + " synonyms ");
             }
         } else {
             if (LOGGER.isInfoEnabled()) {

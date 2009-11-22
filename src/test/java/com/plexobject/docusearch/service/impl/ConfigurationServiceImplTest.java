@@ -181,6 +181,8 @@ public class ConfigurationServiceImplTest {
         final IndexPolicy policy = new IndexPolicy();
         policy.setScore(10);
         policy.setBoost(20.5F);
+        policy.setAddToDictionary(true);
+        policy.setOwner("shahbhat");
         for (int i = 0; i < 10; i++) {
             policy.add("name" + i, i % 2 == 0, i % 2 == 1, i % 2 == 1, 1.1F);
         }

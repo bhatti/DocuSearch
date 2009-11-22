@@ -30,11 +30,11 @@ import com.plexobject.docusearch.persistence.RepositoryFactory;
 import com.plexobject.docusearch.service.IndexService;
 
 public class IndexServiceImplTest {
-    private static final String SECONDARY_ID = "secondary_id";
-    private static final String MASTER_ID = "master_id";
-    private static final String MASTER_SECONDARYS = "master_secondaries";
-    private static final String SECONDARYS = "secondaries";
-    private static final String MASTER = "test_master";
+    private static final String SECONDARY_TEST_DATUM_ID = "secondary_test_datum_id";
+    private static final String TEST_DATUM_ID = "test_datum_id";
+    private static final String TEST_DB_SECONDARY_TEST_DB = "test_data_secondary_test_data";
+    private static final String SECONDARY_TEST_DB = "secondary_test_data";
+    private static final String TEST_DB = "test_test_data";
     private static final String DB_NAME = "MYDB";
     private static final int LIMIT = Configuration.getInstance().getPageSize();
 
@@ -66,37 +66,38 @@ public class IndexServiceImplTest {
     @Test
     public final void testCreate() {
         EasyMock.expect(
-                repository.getAllDocuments(MASTER, null, null, LIMIT + 1))
+                repository.getAllDocuments(TEST_DB, null, null, LIMIT + 1))
                 .andReturn(newDocuments());
 
-        EasyMock.expect(configRepository.getIndexPolicy(MASTER)).andReturn(
+        EasyMock.expect(configRepository.getIndexPolicy(TEST_DB)).andReturn(
                 newIndexPolicy());
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
-        Response response = service.createIndexUsingPrimaryDatabase(MASTER);
+        Response response = service.createIndexUsingPrimaryDatabase(TEST_DB);
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
+
         Assert.assertEquals(RestClient.OK_CREATED, response.getStatus());
         Assert.assertTrue("unexpected response "
                 + response.getEntity().toString(), response.getEntity()
-                .toString().contains("rebuilt index for " + MASTER));
+                .toString().contains("rebuilt index for " + TEST_DB));
     }
 
     @Test
     public final void testCreateSecondaryWithNullIndexer() {
         Response response = service.createIndexUsingSecondaryDatabase(null,
-                SECONDARYS, MASTER_SECONDARYS, MASTER_ID,
-                SECONDARY_ID);
+                SECONDARY_TEST_DB, TEST_DB_SECONDARY_TEST_DB, TEST_DATUM_ID,
+                SECONDARY_TEST_DATUM_ID);
         Assert.assertEquals(RestClient.CLIENT_ERROR_BAD_REQUEST, response
                 .getStatus());
-        response = service.createIndexUsingSecondaryDatabase(MASTER, null,
-                MASTER_SECONDARYS, MASTER_ID, SECONDARY_ID);
+        response = service.createIndexUsingSecondaryDatabase(TEST_DB, null,
+                TEST_DB_SECONDARY_TEST_DB, TEST_DATUM_ID, SECONDARY_TEST_DATUM_ID);
         Assert.assertEquals(RestClient.CLIENT_ERROR_BAD_REQUEST, response
                 .getStatus());
-        response = service.createIndexUsingSecondaryDatabase(MASTER,
-                SECONDARYS, null, MASTER_ID, SECONDARY_ID);
+        response = service.createIndexUsingSecondaryDatabase(TEST_DB,
+                SECONDARY_TEST_DB, null, TEST_DATUM_ID, SECONDARY_TEST_DATUM_ID);
         Assert.assertEquals(RestClient.CLIENT_ERROR_BAD_REQUEST, response
                 .getStatus());
     }
@@ -104,103 +105,108 @@ public class IndexServiceImplTest {
     @Test
     public final void testCreateSecondary() {
         EasyMock.expect(
-                repository.getAllDocuments(MASTER_SECONDARYS, null, null,
+                repository.getAllDocuments(TEST_DB_SECONDARY_TEST_DB, null, null,
                         LIMIT + 1)).andReturn(newDocuments());
 
-        EasyMock.expect(repository.getDocument(SECONDARYS, "2")).andReturn(
+        EasyMock.expect(repository.getDocument(SECONDARY_TEST_DB, "2")).andReturn(
                 newDocument());
 
         EasyMock
                 .expect(
-                        configRepository.getIndexPolicy(MASTER + "_"
-                                + SECONDARYS)).andReturn(newIndexPolicy());
+                        configRepository.getIndexPolicy(TEST_DB + "_"
+                                + SECONDARY_TEST_DB)).andReturn(newIndexPolicy());
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
         Response response = service.createIndexUsingSecondaryDatabase(
-                MASTER, SECONDARYS, MASTER_SECONDARYS, MASTER_ID,
-                SECONDARY_ID);
+                TEST_DB, SECONDARY_TEST_DB, TEST_DB_SECONDARY_TEST_DB, TEST_DATUM_ID,
+                SECONDARY_TEST_DATUM_ID);
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
+
         Assert.assertEquals(RestClient.OK_CREATED, response.getStatus());
         Assert.assertTrue("unexpected response "
                 + response.getEntity().toString(), response.getEntity()
-                .toString().contains("rebuilt index for " + MASTER));
+                .toString().contains("rebuilt index for " + TEST_DB));
     }
 
     @Test
     public final void testUpdate() {
-        EasyMock.expect(repository.getDocument(MASTER, "id")).andReturn(
+        EasyMock.expect(repository.getDocument(TEST_DB, "id")).andReturn(
                 newDocument());
-        EasyMock.expect(configRepository.getIndexPolicy(MASTER)).andReturn(
+        EasyMock.expect(configRepository.getIndexPolicy(TEST_DB)).andReturn(
                 newIndexPolicy());
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
-        Response response = service.updateIndexUsingPrimaryDatabase(MASTER,
+        Response response = service.updateIndexUsingPrimaryDatabase(TEST_DB,
                 "id");
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
+
         Assert.assertEquals(200, response.getStatus());
         Assert.assertTrue("unexpected response "
                 + response.getEntity().toString(), response.getEntity()
                 .toString().contains(
-                        "updated 1 documents in index for " + MASTER
+                        "updated 1 documents in index for " + TEST_DB
                                 + " with ids id"));
     }
 
     @Test
     public final void testUpdateSecondary() {
         EasyMock.expect(
-                repository.getAllDocuments(MASTER_SECONDARYS, null, null,
+                repository.getAllDocuments(TEST_DB_SECONDARY_TEST_DB, null, null,
                         LIMIT + 1)).andReturn(newDocuments());
-        EasyMock.expect(repository.getDocument(SECONDARYS, "2")).andReturn(
+        EasyMock.expect(repository.getDocument(SECONDARY_TEST_DB, "2")).andReturn(
                 newDocument());
         EasyMock.expect(
-                configRepository.getIndexPolicy(MASTER + SECONDARYS))
+                configRepository.getIndexPolicy(TEST_DB + SECONDARY_TEST_DB))
                 .andReturn(newIndexPolicy());
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
+
         Response response = service.updateIndexUsingSecondaryDatabase(
-                MASTER, SECONDARYS, MASTER_SECONDARYS, MASTER_ID,
-                SECONDARY_ID, "2");
+                TEST_DB, SECONDARY_TEST_DB, TEST_DB_SECONDARY_TEST_DB, TEST_DATUM_ID,
+                SECONDARY_TEST_DATUM_ID, "2");
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
+
         Assert.assertEquals(200, response.getStatus());
         Assert.assertTrue("unexpected response "
                 + response.getEntity().toString(), response.getEntity()
                 .toString().contains(
-                        "updated 1 documents in index for " + MASTER
+                        "updated 1 documents in index for " + TEST_DB
                                 + " with ids 2"));
     }
 
     @Test
     public final void testUpdateSecondaryNotFound() {
         EasyMock.expect(
-                repository.getAllDocuments(MASTER_SECONDARYS, null, null,
+                repository.getAllDocuments(TEST_DB_SECONDARY_TEST_DB, null, null,
                         LIMIT + 1)).andReturn(newDocuments());
 
         EasyMock.expect(
-                configRepository.getIndexPolicy(MASTER + SECONDARYS))
+                configRepository.getIndexPolicy(TEST_DB + SECONDARY_TEST_DB))
                 .andReturn(newIndexPolicy());
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
         Response response = service.updateIndexUsingSecondaryDatabase(
-                MASTER, SECONDARYS, MASTER_SECONDARYS, MASTER_ID,
-                SECONDARY_ID, "0");
+                TEST_DB, SECONDARY_TEST_DB, TEST_DB_SECONDARY_TEST_DB, TEST_DATUM_ID,
+                SECONDARY_TEST_DATUM_ID, "0");
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
+
         Assert.assertEquals(200, response.getStatus());
         Assert.assertTrue("unexpected response "
                 + response.getEntity().toString(), response.getEntity()
                 .toString().contains(
-                        "updated 0 documents in index for " + MASTER));
+                        "updated 0 documents in index for " + TEST_DB));
     }
 
     private PagedList<Document> newDocuments() {
@@ -215,8 +221,8 @@ public class IndexServiceImplTest {
         map.put("Z", "9");
         final List<? extends Object> arr = Arrays.asList(11, "12", 13, "14");
         final Document doc = new DocumentBuilder(DB_NAME).setId(
-                String.valueOf(++idCount)).put("master_id", "1").put(
-                "secondary_id", "2").put("C", map).put("D", arr).build();
+                String.valueOf(++idCount)).put("test_datum_id", "1").put(
+                "secondary_test_datum_id", "2").put("C", map).put("D", arr).build();
 
         return doc;
     }
