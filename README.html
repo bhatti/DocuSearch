@@ -1,0 +1,266 @@
+<html>
+    <head>
+        <title>DocuSearch - Lucene / CouchDB based search and repository</title>
+    </head>
+    <body>
+I have been playing with CouchDB lately and was looking for a way to index
+documents stored in the CouchDB. So, I started an open source project <a
+    href="http://code.google.com/p/docusearch/">DocuSearch</a>. It includes both
+POJO based and REST based services for indexing and searching that are hosted in
+Jetty server. 
+<h3>Getting Started</h3>
+To get started download the source using:
+<pre>
+svn checkout http://docusearch.googlecode.com/svn/trunk/ docusearch-read-only  
+</pre>
+You will need to install Java 1.6, Maven 2.0+ and CouchDB before start using the
+services. On Mac, you can install CouchDB via:
+<pre>
+sudo port install couchdb
+</pre>
+Then manually start the CouchDB using
+<pre>
+sudo /opt/local/bin/couchdb
+</pre>
+
+You can verify if CouchDB is running using <a
+    href="http://localhost:5984/_utils/index.html">http://localhost:5984/_utils/index.html</a>.
+
+<h3>Building</h3>
+Type "mvn" to build the project. Maven will download a bunch of files that may
+take a few minutes and will cache those locally and will then proceed to
+compile, test and build war file.
+
+<h3>Populating Database</h3>
+You are free to choose your favorite way to add or import data into CouchDB,
+though the DocuSearch includes some ETL programs to add comma or tab delimited
+data into CouchDB. For example, let say you want to find authorized e-file
+providers for IRS, so you download some data from <a
+    href="http://www.irs.gov/taxpros/providers/article/0,,id=98168,00.html">IRS</a>
+that has following format:
+<pre>
+business_name,street_address_1,street_address_2,city,state,zip,zip_4,contact_first_name,contact_middle_name,contact_last_name,phone,flag1,flag2,flag3,flag4
+</pre>
+You can import it to the couchdb using
+<pre>
+mvn exec:java -Dexec.mainClass="com.plexobject.docusearch.etl.DocumentLoader" \
+-Dexec.args="efile_providers wa.txt none
+business_name,street_address_1,street_address_2,city,state,zip,zip_4,contact_first_name,contact_middle_name,contact_last_name,phone"
+</pre>
+Which takes following arguments:
+<ul>
+    <li>name-of-database, e.g. efile_providers
+    <li>name of comma delimited file, e.g. wa.txt
+    <li>id-column or none if database ids will automatically be generated
+    <li>comma-delimited list of fields to be imported
+</ul>
+Once the data is loaded, you can create Lucene index, but before that you will
+have to specify the index policy, which is just another CouchDB document. The
+index policy specifies fields to be indexed, whether they should be stored in
+index, score and boost values. These policy configurations are stored in
+the_config database and you can add the policy using:
+<pre>
+curl -X PUT http://127.0.0.1:5984/the_config/index_policy_for_efile_providers -d
+\
+'{"_id":"index_policy_for_efile_providers","dbname":"the_config","score":0,"boost":0,"fields":[{"name":"business_name",
+"storeInIndex":"true"},{"name":"street_address_1"},{"name":"city"},{"name":"zip"},{"name":"contact_first_name"},{"name":"contact_last_name"}]}'
+</pre>
+It will return
+<pre>
+{"ok":true,"id":"index_policy_for_efile_providers","rev":"1-0fd2f5b2e2012f898df677c68daf4592"}
+</pre>
+Note that you will need to pass the "_rev" parameter if you need to update the
+index policy. Later, you can retrieve the policy using:
+<pre>
+curl http://localhost:5984/the_config/index_policy_for_efile_providers
+</pre>
+
+Now you are ready to build the index but let's first start the Jetty with the
+REST based services via
+<pre>
+mvn jetty:run-war
+</pre>
+
+Now hop on to browser and point to 
+<pre>
+http://localhost:8080
+</pre>
+
+Finally, you can use curl to build the index via:
+<pre>
+curl -vX POST http://localhost:8080/svc/index/primary/efile_providers
+</pre>
+
+Before you can query, you will have to specify query policy that is also stored
+in CouchDB and specifies list of fields that are searched, e.g.
+<pre>
+curl -X PUT http://127.0.0.1:5984/the_config/query_policy_for_efile_providers -d
+\
+'{"_id":"query_policy_for_efile_providers","dynamo":"the_config","fields":[{"name":"efile_providers.business_name",
+"boost":2},{"name":"efile_providers.street_address_1"},{"name":"efile_providers.city"},{"name":"efile_providers.zip"},{"name":"efile_providers.contact_first_name"},{"name":"efile_providers.contact_last_name"}]}'
+</pre>
+Which will return
+<pre>
+{"ok":true,"id":"query_policy_for_efile_providers","rev":"1-618703c1fd66996f23b89c4414dd0842"}
+</pre>
+Again, you will need to pass "_rev" parameter when updating the query policy.
+Next you can search contents of the index via:
+<pre>
+curl "http://localhost:8080/svc/search/efile_providers?keywords=mike"
+</pre>
+Which will return
+<pre>
+{"suggestions":[],"keywords":"mike","start":0,"limit":0,"totalHits":7,"docs":[{"_id":"0352d18145532a05714bfec2e1e649dd","dbname":"efile_providers","indexDate":"20091121","doc":"53","score":"0.0","owner":"*","efile_providers.business_name":"Mr
+Tax
+Man"},{"_id":"062d548eb394db3534782c5b6ded0529","dbname":"efile_providers","indexDate":"20091121","doc":"96","score":"0.0","owner":"*","efile_providers.business_name":"Liberty
+Tax
+Service"},{"_id":"1ddc6006a2315dd0b0119c0dbc22c1a7","dbname":"efile_providers","indexDate":"20091121","doc":"450","score":"0.0","owner":"*","efile_providers.business_name":"1040
+PLUS
+INC"},{"_id":"3621cc7edde5f191bcc5f3a41160f61e","dbname":"efile_providers","indexDate":"20091121","doc":"793","score":"0.0","owner":"*","efile_providers.business_name":"MIKE
+A PASSECK
+CPA"},{"_id":"37a2a152ff120ac293ea67daac1a11aa","dbname":"efile_providers","indexDate":"20091121","doc":"811","score":"0.0","owner":"*","efile_providers.business_name":"Liberty
+Tax
+Service"},{"_id":"be0fd60800b9eed6d418601f8cba06f3","dbname":"efile_providers","indexDate":"20091121","doc":"2856","score":"0.0","owner":"*","efile_providers.business_name":"Liberty
+Tax
+Service"},{"_id":"dfa948236e87d0c6ba90c612cb166635","dbname":"efile_providers","indexDate":"20091121","doc":"3395","score":"0.0","owner":"*","efile_providers.business_name":"MIKE
+FOLEYS TAX SERVICE"}]}
+</pre>
+This query functionality can also be tested through a simple html based
+interface by just pointing your browser to <a
+    href="http://localhost:8080/">http://localhost:8080/</a>, e.g.
+<p>
+<img src="http://weblog.plexobject.com/images/docusearch_search.png">
+<p> 
+The index stores id of the document that is indexed so you can also retrieve
+details of each link using 
+<pre>
+http://localhost:8080/svc/storage/efile_providers/0352d18145532a05714bfec2e1e649dd
+</pre>
+This feature can be tested from HTML interface by clicking on details link, e.g.
+<p>
+<img src="http://weblog.plexobject.com/images/docusearch_search_details.png">
+<p> 
+
+You can also debug why certain results are showing up using following API
+<pre>
+http://localhost:8080/svc/search/explain/efile_providers?keywords=mike
+</pre>
+This feature can be tested from HTML interface by clicking on explain button,
+e.g.
+<p>
+<img src="http://weblog.plexobject.com/images/docusearch_search_explain.png">
+<p> 
+
+Next, you can also find top terms used in the index using:
+<pre>
+http://localhost:8080/svc/search/rank/efile_providers?limit=1000
+</pre>
+Again, this feature can be tested from HTML interface by clicking on top terms
+button, e.g.
+<p>
+<img src="http://weblog.plexobject.com/images/docusearch_search_top.png">
+<p> 
+
+You can also find similar searches for a particular search using
+<pre>
+http://localhost:8080/svc/search/similar/efile_providers?externalId=37a2a152ff120ac293ea67daac1a11aa&luceneId=811&detailedResults=true
+</pre>
+
+Which will return
+<pre>
+{"externalId":"37a2a152ff120ac293ea67daac1a11aa","luceneId":811,"start":0,"limit":0,"totalHits":973,"docs":[{"zip":"98107","phone":"206\/782-2772","contact_first_name":"TOR","street_address_2":"","street_address_1":"5919
+NW 15TH
+AVE","state":"WA","city":"SEATTLE","_rev":"1-6f14e2e9d2092e63173002cd95785963","business_name":"LIBERTY
+TAX
+SERVICE","_id":"00684037657ef8960ede2f155339420e","contact_middle_name":"","zip_4":"","dbname":"efile_providers","contact_last_name":"SLINNING"},{"zip":"98118","phone":"206\/850-0505","contact_first_name":"ANDREW","street_address_2":"","street_address_1":"5021
+SOUTH
+BARTON","state":"WA","city":"SEATTLE","_rev":"1-f910f4736db188d05f24751a68070b86","business_name":"H&A
+TAX PREPARATION
+SVCS","_id":"00b6c05dd24c30c4740b7aa1257ef308","contact_middle_name":"H","zip_4":"5336","dbname":"efile_providers","contact_last_name":"HODGE"},{"zip":"98682","phone":"360\/891-6701","contact_first_name":"MARILYN","street_address_2":"","street_address_1":"5101
+NE 121ST AVE
+#50","state":"WA","city":"VANCOUVER","_rev":"1-6ab3f77b03eee2c529f910c559236eb3","business_name":"AFFORDABLE
+BOOKKEEPING & TAX
+SERVIC","_id":"00e35b6bbfbfe68db8e962bc41ec6c99","contact_middle_name":"C","zip_4":"","dbname":"efile_providers","contact_last_name":"BOON"},{"zip":"98406","phone":"206\/322-2226","contact_first_name":"MAN","street_address_2":"","street_address_1":"602
+6TH
+AVE","state":"WA","city":"TACOMA","_rev":"1-4efeefbdaadaf9dde2a49f7246f884b5","business_name":"INSTANT
+TAX
+PRO","_id":"00fe1df22fe5731e01515cada787efd2","contact_middle_name":"V","zip_4":"","dbname":"efile_providers","contact_last_name":"SAM"},{"zip":"98208","phone":"425\/338-0118","contact_first_name":"STEPHEN","street_address_2":"","street_address_1":"3615
+100TH ST
+SE","state":"WA","city":"EVERETT","_rev":"1-381ea9171f405bf40f78597a91730588","business_name":"ADSUM
+TAX & BOOKKEEPING
+LLC","_id":"014548ee3e23e5d56d4521b76de8434a","contact_middle_name":"D","zip_4":"","dbname":"efile_providers","contact_last_name":"TANGEN"},{"zip":"99116","phone":"509\/633-3829","contact_first_name":"RICHARD","street_address_2":"","street_address_1":"102
+STEVENS","state":"WA","city":"COULEE
+DAM","_rev":"1-1b767048def4829db756f04014733681","business_name":"MEYER TAX
+SERVICE","_id":"016a700252b54fc170ffc0f69c60ce93","contact_middle_name":"W","zip_4":"","dbname":"efile_providers","contact_last_name":"AVEY"},{"zip":"98391","phone":"253\/862-5573","contact_first_name":"Tim","street_address_2":"","street_address_1":"20616
+SR 410 E","state":"WA","city":"Bonney
+Lake","_rev":"1-5b6ee0d167743b1679c8c3f84f16d78b","business_name":"Barrans Tax
+Service","_id":"017a48b555806eda9f7999b426b00d14","contact_middle_name":"","zip_4":"","dbname":"efile_providers","contact_last_name":"Barrans"},{"zip":"98503","phone":"360\/456-5084","contact_first_name":"THOMAS","street_address_2":"","street_address_1":"4440
+PACIFIC AVE
+SE","state":"WA","city":"LACEY","_rev":"1-dcbfcb5c112e3ef1e109f7bbfd410e9a","business_name":"TAX
+CENTERS OF
+AMERICA","_id":"01a024fe186a0df2f313191a951dbb1c","contact_middle_name":"B","zip_4":"","dbname":"efile_providers","contact_last_name":"OTT"},{"zip":"WA","phone":"Stevenson","contact_first_name":"","street_address_2":"924
+West S
+Circle","street_address_1":"LLC","state":"Washougal","city":"","_rev":"1-9a7678e5c46651998fb7c0c83c9018b1","business_name":"Columbia
+Tax","_id":"01aa9791195e915093ee207518e6bf34","contact_middle_name":"Gina","zip_4":"98671","dbname":"efile_providers","contact_last_name":"A"},{"zip":"98188","phone":"303\/888-1040","contact_first_name":"CARL","street_address_2":"","street_address_1":"17600
+PACIFIC HWY
+S","state":"WA","city":"SEATTLE","_rev":"1-976ac1c5ba46f59a42b57786af76e9b2","business_name":"NEXT
+DAY TAX
+CASH","_id":"01b21a8653b83789b561040887be7a28","contact_middle_name":"","zip_4":"","dbname":"efile_providers","contact_last_name":"PALMER"},{"zip":"98032","phone":"253\/852-6182","contact_first_name":"TOM","street_address_2":"#
+A-148","street_address_1":"1819 CENTRAL AVE
+S","state":"WA","city":"KENT","_rev":"1-1d0a9dbc409944bfc4618f598541a97f","business_name":"TAX
+GALLERY\/ TOM COKE
+ASSOCIATES","_id":"02051caa9f2faa9ca8386792c9653ff6","contact_middle_name":"C","zip_4":"","dbname":"efile_providers","contact_last_name":"ARMON"},{"zip":"98686","phone":"702\/320-0727","contact_first_name":"ARMOGAST","street_address_2":"","street_address_1":"14605
+NE 20TH
+AVE","state":"WA","city":"VANCOUVER","_rev":"1-adf4be610b7fa43794d4d7dd3f8dc7de","business_name":"SUPREME
+BOOKKEEPING & TAX
+LLC.","_id":"0220b0609b83dd5621a90d9f7fe342ca","contact_middle_name":"J","zip_4":"","dbname":"efile_providers","contact_last_name":"MWASHIGHADI"},{"zip":"98665","phone":"360\/896-9897","contact_first_name":"GERALD","street_address_2":"","street_address_1":"7700
+HWY
+99","state":"WA","city":"VANCOUVER","_rev":"1-78234fab75e3e44d79648dab756a7791","business_name":"JACKSON
+HEWITT TAX
+SERVICE","_id":"02c2c5983ca8b4a00173dca208cc86de","contact_middle_name":"D","zip_4":"","dbname":"efile_providers","contact_last_name":"BREUNIG"},{"zip":"98531","phone":"360\/556-4906","contact_first_name":"David","street_address_2":"SUITE
+A","street_address_1":"417 W. MAIN
+ST.","state":"WA","city":"CENTRALIA","_rev":"1-fcb886c533f0a223f835397a0d5cf773","business_name":"Liberty
+Tax
+Service","_id":"02c466c8097ee00a1ae2d27aafd808aa","contact_middle_name":"C","zip_4":"","dbname":"efile_providers","contact_last_name":"Dunsmore"},{"zip":"98626","phone":"909\/849-1174","contact_first_name":"CINDY","street_address_2":"","street_address_1":"2640
+ROBERT
+CT","state":"WA","city":"Kelso","_rev":"1-5513b1057c7882a7657a79a3e888b21d","business_name":"THE
+TAX
+WARD","_id":"032a14eaca19a1548364609fd480a1b9","contact_middle_name":"J","zip_4":"","dbname":"efile_providers","contact_last_name":"WARD"},{"zip":"98036","phone":"425\/774-6633","contact_first_name":"Mike","street_address_2":"","street_address_1":"20015
+HIGHWAY
+99","state":"WA","city":"LYNNWOOD","_rev":"1-d7f17073757afa70e869e543099a7bf5","business_name":"Mr
+Tax
+Man","_id":"0352d18145532a05714bfec2e1e649dd","contact_middle_name":"C","zip_4":"6073","dbname":"efile_providers","contact_last_name":"McKinnon"},{"zip":"98284","phone":"360\/595-9138","contact_first_name":"LAURA","street_address_2":"","street_address_1":"765
+SUMERSET WAY","state":"WA","city":"SEDRO
+WOOLLEY","_rev":"1-b2ebc210bbf481c2ed37751a45a2249e","business_name":"CAIN LAKE
+TAX
+SERVICE","_id":"03cc2bcb150f981519a8d93093a015ca","contact_middle_name":"L","zip_4":"","dbname":"efile_providers","contact_last_name":"COZZA"},{"zip":"99350","phone":"509\/786-1269","contact_first_name":"ERNEST","street_address_2":"","street_address_1":"1002
+LILLIAN","state":"WA","city":"PROSSER","_rev":"1-cd626358950c19bd2519859fbd50bbce","business_name":"E
+& R TAX
+SERVICE","_id":"03f620e0ae8ac148af79cb7848c3bf41","contact_middle_name":"W","zip_4":"","dbname":"efile_providers","contact_last_name":"TROEMEL"},{"zip":"99301","phone":"509\/851-8808","contact_first_name":"Aaron","street_address_2":"SUITE
+E","street_address_1":"5024 NORTH ROAD
+68","state":"WA","city":"PASCO","_rev":"1-e9c9843292f9233f46e07628105ee72c","business_name":"Liberty
+Tax Service of West
+Pasco","_id":"03fe45d715110d0aa2d3022bbe7325e7","contact_middle_name":"J","zip_4":"","dbname":"efile_providers","contact_last_name":"Welles"},{"zip":"98329","phone":"253\/884-3566","contact_first_name":"ROY","street_address_2":"","street_address_1":"13215
+139TH AVE KPN","state":"WA","city":"GIG
+HARBOR","_rev":"1-70d070d37c72fb13b9162ba4523ab70f","business_name":"MYR-MAR
+ACCOUNTING SERVICE
+INC","_id":"040ab87550b5a4a200c97d2e6a6b96a7","contact_middle_name":"M","zip_4":"","dbname":"efile_providers","contact_last_name":"KEIZUR"}]}
+</pre>
+
+This feature can be tested from HTML interface by clicking on similar link, e.g.
+<p>
+<img src="http://weblog.plexobject.com/images/docusearch_search_similar.png">
+<p> 
+
+
+<h3>Conclusion</h3>
+DocuSearch makes it easy to query documents on CouchDB, however I have also
+started adding support for Berkley DB if you choose to use it. I found CouchDB
+wastes a lot of space and is a bit slow so that may be alternative option for
+some. I also plan to add ngrams and stem based analyzers to create better search
+experience. I also welcome you to join the project. You can add yourself to <a
+    href="http://code.google.com/p/docusearch/">http://code.google.com/p/docusearch/</a>
+project and start contributing.
+</body>
+</html>
+
