@@ -1,4 +1,4 @@
-I have been playing with CouchDB lately and was looking for a way to index documents stored in the CouchDB. So, I started an open source project http://code.google.com/p/docusearch/. It includes both POJO based and REST based services for indexing and searching that are hosted in Jetty server. 
+
 == Getting Started ==
 To get started download the source using:
 {{{
