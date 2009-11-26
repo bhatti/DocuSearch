@@ -1,4 +1,5 @@
-﻿== Getting Started ==
+
+== Getting Started ==
 To get started download the source using:
 {{{
 svn checkout http://docusearch.googlecode.com/svn/trunk/ docusearch-read-only  
@@ -25,15 +26,15 @@ business_name,street_address_1,street_address_2,city,state,zip,zip_4,contact_fir
 You can import it to the couchdb using
 {{{
 mvn exec:java -Dexec.mainClass="com.plexobject.docusearch.etl.DocumentLoader" \
-								-Dexec.args="efile_providers wa.txt none business_name,street_address_1,street_address_2,city,state,zip,zip_4,contact_first_name,contact_middle_name,contact_last_name,phone"
+								-Dexec.args="efile_providers data/wa.txt none business_name,street_address_1,street_address_2,city,state,zip,zip_4,contact_first_name,contact_middle_name,contact_last_name,phone"
 								}}}
 								Which takes following arguments:
-								<ul>
-								<li>name-of-database, e.g. efile_providers
-								<li>name of comma delimited file, e.g. wa.txt
-								<li>id-column or none if database ids will automatically be generated
-								<li>comma-delimited list of fields to be imported
-								</ul>
+								
+								* name-of-database, e.g. efile_providers
+								* name of comma delimited file, e.g. wa.txt
+								* id-column or none if database ids will automatically be generated
+								* comma-delimited list of fields to be imported
+								
 								Once the data is loaded, you can create Lucene index, but before that you will have to specify the index policy, which is just another CouchDB document. The index policy specifies fields to be indexed, whether they should be stored in index, score and boost values. These policy configurations are stored in the_config database and you can add the policy using:
 								{{{
 								curl -X PUT http://127.0.0.1:5984/the_config/index_policy_for_efile_providers -d \
@@ -60,7 +61,7 @@ http://localhost:8080
 
 Finally, you can use curl to build the index via:
 {{{
-curl -vX POST http://localhost:8080/svc/index/primary/efile_providers
+curl -vX POST http://localhost:8080/api/index/primary/efile_providers
 }}}
 
 Before you can query, you will have to specify query policy that is also stored in CouchDB and specifies list of fields that are searched, e.g.
@@ -73,7 +74,7 @@ Which will return
 }}}
 Again, you will need to pass "_rev" parameter when updating the query policy.  Next you can search contents of the index via:
 {{{
-curl "http://localhost:8080/svc/search/efile_providers?keywords=mike"
+curl "http://localhost:8080/api/search/efile_providers?keywords=mike"
 }}}
 Which will return
 {{{
@@ -81,38 +82,38 @@ Which will return
 }}}
 This query functionality can also be tested through a simple html based interface by just pointing your browser to http://localhost:8080/, e.g.
 <p>
-<img src="http://weblog.plexobject.com/images/docusearch_search.png">
+<img width="640" height="480" src="http://weblog.plexobject.com/images/docusearch_search.png">
 <p> 
 The index stores id of the document that is indexed so you can also retrieve details of each link using 
 {{{
-http://localhost:8080/svc/storage/efile_providers/0352d18145532a05714bfec2e1e649dd
+http://localhost:8080/api/storage/efile_providers/0352d18145532a05714bfec2e1e649dd
 }}}
 This feature can be tested from HTML interface by clicking on details link, e.g.
 <p>
-<img src="http://weblog.plexobject.com/images/docusearch_search_details.png">
+<img width="640" height="480" src="http://weblog.plexobject.com/images/docusearch_search_details.png">
 <p> 
 
 You can also debug why certain results are showing up using following API
 {{{
-http://localhost:8080/svc/search/explain/efile_providers?keywords=mike
+http://localhost:8080/api/search/explain/efile_providers?keywords=mike
 }}}
 This feature can be tested from HTML interface by clicking on explain button, e.g.
 <p>
-<img src="http://weblog.plexobject.com/images/docusearch_search_explain.png">
+<img width="640" height="480" src="http://weblog.plexobject.com/images/docusearch_search_explain.png">
 <p> 
 
 Next, you can also find top terms used in the index using:
 {{{
-http://localhost:8080/svc/search/rank/efile_providers?limit=1000
+http://localhost:8080/api/search/rank/efile_providers?limit=1000
 }}}
 Again, this feature can be tested from HTML interface by clicking on top terms button, e.g.
 <p>
-<img src="http://weblog.plexobject.com/images/docusearch_search_top.png">
+<img width="640" height="480" src="http://weblog.plexobject.com/images/docusearch_search_top.png">
 <p> 
 
 You can also find similar searches for a particular search using
 {{{
-http://localhost:8080/svc/search/similar/efile_providers?externalId=37a2a152ff120ac293ea67daac1a11aa&luceneId=811&detailedResults=true
+http://localhost:8080/api/search/similar/efile_providers?externalId=37a2a152ff120ac293ea67daac1a11aa&luceneId=811&detailedResults=true
 }}}
 
 Which will return
@@ -122,11 +123,7 @@ Which will return
 
 This feature can be tested from HTML interface by clicking on similar link, e.g.
 <p>
-<img src="http://weblog.plexobject.com/images/docusearch_search_similar.png">
+<img width="640" height="480" src="http://weblog.plexobject.com/images/docusearch_search_similar.png">
 <p> 
-
-
-== Conclusion ==
-DocuSearch makes it easy to query documents on CouchDB, however I have also started adding support for Berkley DB if you choose to use it. I found CouchDB wastes a lot of space and is a bit slow so that may be alternative option for some. I also plan to add ngrams and stem based analyzers to create better search experience. I also welcome you to join the project. You can add yourself to http://code.google.com/p/docusearch/ project and start contributing.
 
 
