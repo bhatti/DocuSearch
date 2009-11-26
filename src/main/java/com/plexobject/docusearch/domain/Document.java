@@ -2,10 +2,9 @@ package com.plexobject.docusearch.domain;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
@@ -35,12 +34,12 @@ public class Document implements Map<String, Object> {
             throw new IllegalArgumentException("database not specified in "
                     + properties);
         }
-        this.properties = Collections.unmodifiableMap(properties);
+        this.properties = new TreeMap<String, Object>(properties);
 
     }
 
     public Map<String, Object> getAttributes() {
-        final Map<String, Object> target = new HashMap<String, Object>();
+        final Map<String, Object> target = new TreeMap<String, Object>();
         for (Map.Entry<String, Object> e : entrySet()) {
             if (isValidAttributeKey(e.getKey())) {
                 target.put(e.getKey(), e.getValue());

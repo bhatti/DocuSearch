@@ -2,7 +2,9 @@ package com.plexobject.docusearch.service.impl;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -17,10 +19,15 @@ import org.apache.commons.validator.GenericValidator;
 import org.apache.log4j.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import com.plexobject.docusearch.converter.Converters;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.http.RestClient;
+import com.plexobject.docusearch.index.IndexPolicy;
 import com.plexobject.docusearch.jmx.JMXRegistrar;
 import com.plexobject.docusearch.jmx.impl.ServiceJMXBeanImpl;
 import com.plexobject.docusearch.lucene.LuceneUtils;
@@ -28,7 +35,7 @@ import com.plexobject.docusearch.metrics.Metric;
 import com.plexobject.docusearch.metrics.Timer;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.DocumentRepository;
-import com.plexobject.docusearch.persistence.RepositoryFactory;
+import com.plexobject.docusearch.query.CriteriaBuilder;
 import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.Query;
 import com.plexobject.docusearch.query.QueryCriteria;
@@ -38,22 +45,32 @@ import com.plexobject.docusearch.query.SearchDoc;
 import com.plexobject.docusearch.query.SearchDocList;
 import com.plexobject.docusearch.query.lucene.QueryImpl;
 import com.plexobject.docusearch.service.SearchService;
+import com.plexobject.docusearch.util.SptialLookup;
+import com.sun.jersey.spi.inject.Inject;
 
 @Path("/search")
-public class SearchServiceImpl implements SearchService {
+@Component("searchService")
+@Scope("singleton")
+public class SearchServiceImpl implements SearchService, InitializingBean {
     private static final Logger LOGGER = Logger
             .getLogger(SearchServiceImpl.class);
-    private final ConfigurationRepository configRepository;
-    private final DocumentRepository docRepository;
+    private final Map<File, Query> cachedQueries = new HashMap<File, Query>();
+
+    @Autowired
+    @Inject
+    ConfigurationRepository configRepository;
+
+    @Autowired
+    @Inject
+    DocumentRepository documentRepository;
+
+    @Autowired
+    @Inject
+    SptialLookup sptialLookup;
+
     private final ServiceJMXBeanImpl mbean;
 
     public SearchServiceImpl() {
-        this(new RepositoryFactory());
-    }
-
-    public SearchServiceImpl(final RepositoryFactory repositoryFactory) {
-        this.docRepository = repositoryFactory.getDocumentRepository();
-        this.configRepository = repositoryFactory.getConfigurationRepository();
         mbean = JMXRegistrar.getInstance().register(getClass());
     }
 
@@ -65,6 +82,8 @@ public class SearchServiceImpl implements SearchService {
     public Response query(@PathParam("index") final String index,
             @QueryParam("owner") final String owner,
             @QueryParam("keywords") final String keywords,
+            @QueryParam("zipCode") final String zipCode,
+            @QueryParam("radius") final String radius,
             @QueryParam("suggestions") final boolean includeSuggestions,
             @QueryParam("start") final int start,
             @QueryParam("limit") final int limit,
@@ -86,16 +105,29 @@ public class SearchServiceImpl implements SearchService {
         final Timer timer = Metric.newTimer("SearchServiceImpl.query");
 
         try {
-            QueryPolicy policy = configRepository.getQueryPolicy(index);
-            final QueryCriteria criteria = new QueryCriteria()
+            IndexPolicy indexPolicy = configRepository.getIndexPolicy(index);
+
+            QueryPolicy queryPolicy = configRepository.getQueryPolicy(index);
+            final CriteriaBuilder criteriaBuilder = new CriteriaBuilder()
                     .setKeywords(keywords).setOwner(owner);
+            if (zipCode != null && zipCode.length() > 0) {
+                criteriaBuilder.setZipcode(zipCode);
+                double[] latLongs = sptialLookup
+                        .getLatitudeAndLongitude(zipCode);
+                criteriaBuilder.setLatitude(latLongs[0]);
+                criteriaBuilder.setLongitude(latLongs[1]);
+            }
+            if (radius != null && radius.length() > 0) {
+                criteriaBuilder.setRadius(Double.valueOf(radius));
+            }
+            final QueryCriteria criteria = criteriaBuilder.build();
 
             final File dir = new File(LuceneUtils.INDEX_DIR, index);
 
             Query query = newQueryImpl(dir);
 
-            SearchDocList results = query.search(criteria, policy,
-                    includeSuggestions, start, limit);
+            SearchDocList results = query.search(criteria, indexPolicy,
+                    queryPolicy, includeSuggestions, start, limit);
 
             JSONArray docs = docsToJson(index, detailedResults, results);
             JSONArray similar = new JSONArray();
@@ -115,7 +147,7 @@ public class SearchServiceImpl implements SearchService {
             timer.stop("Found " + results.getTotalHits() + " hits for "
                     + keywords + " on index " + index + ", detailed "
                     + detailedResults + ", start " + start + ", limit " + limit
-                    + ", suggestions " + includeSuggestions + "-->" + response);
+                    + ", suggestions " + includeSuggestions);
             mbean.incrementRequests();
 
             return Response.ok(response.toString()).build();
@@ -157,16 +189,18 @@ public class SearchServiceImpl implements SearchService {
         final Timer timer = Metric.newTimer("SearchServiceImpl.query");
 
         try {
+            IndexPolicy indexPolicy = configRepository.getIndexPolicy(index);
 
-            LookupPolicy policy = configRepository.getLookupPolicy(index);
-            final QueryCriteria criteria = new QueryCriteria()
-                    .setKeywords(keywords);
+            LookupPolicy lookupPolicy = configRepository.getLookupPolicy(index);
+            final QueryCriteria criteria = new CriteriaBuilder().setKeywords(
+                    keywords.trim() + "*").build();
 
             final File dir = new File(LuceneUtils.INDEX_DIR, index);
 
             Query query = newQueryImpl(dir);
 
-            List<String> results = query.partialLookup(criteria, policy, limit);
+            List<String> results = query.partialLookup(criteria, indexPolicy,
+                    lookupPolicy, limit);
             StringBuilder response = new StringBuilder();
             for (String word : results) {
                 response.append(word + "\r\n");
@@ -213,15 +247,16 @@ public class SearchServiceImpl implements SearchService {
         final Timer timer = Metric.newTimer("SearchServiceImpl.query");
 
         try {
+            IndexPolicy indexPolicy = configRepository.getIndexPolicy(index);
 
-            QueryPolicy policy = configRepository.getQueryPolicy(index);
+            QueryPolicy queryPolicy = configRepository.getQueryPolicy(index);
 
             final File dir = new File(LuceneUtils.INDEX_DIR, index);
 
             Query query = newQueryImpl(dir);
 
             SearchDocList results = query.moreLikeThis(externalId, luceneId,
-                    policy, start, limit);
+                    indexPolicy, queryPolicy, start, limit);
             JSONArray docs = docsToJson(index, detailedResults, results);
             final JSONObject response = new JSONObject();
             response.put("externalId", externalId);
@@ -232,10 +267,11 @@ public class SearchServiceImpl implements SearchService {
             response.put("totalHits", results.getTotalHits());
             response.put("docs", docs);
 
-            timer.stop("Found " + results.getTotalHits() + " hits for "
-                    + luceneId + " on index " + index + ", detailed "
-                    + detailedResults + ", start " + start + ", limit " + limit
-                    + ", json " + response);
+            timer
+                    .stop("Found " + results.getTotalHits() + " hits for "
+                            + luceneId + " on index " + index + ", detailed "
+                            + detailedResults + ", start " + start + ", limit "
+                            + limit);
             mbean.incrementRequests();
 
             return Response.ok(response.toString()).build();
@@ -259,7 +295,10 @@ public class SearchServiceImpl implements SearchService {
     @Path("/explain/{index}")
     @Override
     public Response explain(@PathParam("index") final String index,
+            @QueryParam("owner") final String owner,
             @QueryParam("keywords") final String keywords,
+            @QueryParam("zipCode") final String zipCode,
+            @QueryParam("radius") final String radius,
             @QueryParam("start") final int start,
             @QueryParam("limit") final int limit) {
         if (GenericValidator.isBlankOrNull(index)) {
@@ -279,17 +318,30 @@ public class SearchServiceImpl implements SearchService {
         final Timer timer = Metric.newTimer("SearchServiceImpl.explain");
 
         try {
+            IndexPolicy indexPolicy = configRepository.getIndexPolicy(index);
 
-            QueryPolicy policy = configRepository.getQueryPolicy(index);
-            final QueryCriteria criteria = new QueryCriteria()
-                    .setKeywords(keywords);
+            QueryPolicy queryPolicy = configRepository.getQueryPolicy(index);
+
+            final CriteriaBuilder criteriaBuilder = new CriteriaBuilder()
+                    .setKeywords(keywords).setOwner(owner);
+            if (zipCode != null && zipCode.length() > 0) {
+                criteriaBuilder.setZipcode(zipCode);
+                double[] latLongs = sptialLookup
+                        .getLatitudeAndLongitude(zipCode);
+                criteriaBuilder.setLatitude(latLongs[0]);
+                criteriaBuilder.setLongitude(latLongs[1]);
+            }
+            if (radius != null && radius.length() > 0) {
+                criteriaBuilder.setRadius(Double.valueOf(radius));
+            }
+            final QueryCriteria criteria = criteriaBuilder.build();
 
             final File dir = new File(LuceneUtils.INDEX_DIR, index);
 
             final Query query = newQueryImpl(dir);
 
-            final Collection<String> results = query.explain(criteria, policy,
-                    start, limit);
+            final Collection<String> results = query.explain(criteria,
+                    indexPolicy, queryPolicy, start, limit);
             final JSONArray response = new JSONArray();
             for (String result : results) {
                 response.put(result);
@@ -369,8 +421,13 @@ public class SearchServiceImpl implements SearchService {
         }
     }
 
-    protected Query newQueryImpl(final File dir) {
-        return new QueryImpl(dir);
+    protected synchronized Query newQueryImpl(final File dir) {
+        Query query = cachedQueries.get(dir);
+        if (query == null) {
+            query = new QueryImpl(dir);
+            cachedQueries.put(dir, query);
+        }
+        return query;
     }
 
     private JSONArray docsToJson(final String index,
@@ -378,7 +435,8 @@ public class SearchServiceImpl implements SearchService {
         JSONArray docs = new JSONArray();
         for (SearchDoc result : results) {
             if (detailedResults) {
-                Document doc = docRepository.getDocument(index, result.getId());
+                Document doc = documentRepository.getDocument(index, result
+                        .getId());
                 JSONObject jsonDoc = Converters.getInstance().getConverter(
                         Object.class, JSONObject.class).convert(doc);
                 docs.put(jsonDoc);
@@ -391,4 +449,62 @@ public class SearchServiceImpl implements SearchService {
         return docs;
     }
 
+    /**
+     * @return the configRepository
+     */
+    public ConfigurationRepository getConfigRepository() {
+        return configRepository;
+    }
+
+    /**
+     * @param configRepository
+     *            the configRepository to set
+     */
+    public void setConfigRepository(ConfigurationRepository configRepository) {
+        this.configRepository = configRepository;
+    }
+
+    /**
+     * @return the documentRepository
+     */
+    public DocumentRepository getDocumentRepository() {
+        return documentRepository;
+    }
+
+    /**
+     * @param documentRepository
+     *            the documentRepository to set
+     */
+    public void setDocumentRepository(DocumentRepository documentRepository) {
+        this.documentRepository = documentRepository;
+    }
+
+    /**
+     * @return the sptialLookup
+     */
+    public SptialLookup getSptialLookup() {
+        return sptialLookup;
+    }
+
+    /**
+     * @param sptialLookup
+     *            the sptialLookup to set
+     */
+    public void setSptialLookup(SptialLookup sptialLookup) {
+        this.sptialLookup = sptialLookup;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (configRepository == null) {
+            throw new IllegalStateException("configRepository not set");
+        }
+        if (documentRepository == null) {
+            throw new IllegalStateException("documentRepository not set");
+        }
+        if (sptialLookup == null) {
+            throw new IllegalStateException("sptialLookup not set");
+        }
+
+    }
 }

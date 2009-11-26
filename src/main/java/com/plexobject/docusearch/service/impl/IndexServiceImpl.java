@@ -14,6 +14,10 @@ import javax.ws.rs.core.Response;
 
 import org.apache.commons.validator.GenericValidator;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import com.plexobject.docusearch.docs.DocumentsDatabaseIndexer;
 import com.plexobject.docusearch.http.RestClient;
@@ -21,33 +25,23 @@ import com.plexobject.docusearch.jmx.JMXRegistrar;
 import com.plexobject.docusearch.jmx.impl.ServiceJMXBeanImpl;
 import com.plexobject.docusearch.metrics.Metric;
 import com.plexobject.docusearch.metrics.Timer;
-import com.plexobject.docusearch.persistence.RepositoryFactory;
 import com.plexobject.docusearch.service.IndexService;
+import com.sun.jersey.spi.inject.Inject;
 
 @Path("/index")
-public class IndexServiceImpl implements IndexService {
+@Component("indexService")
+@Scope("singleton")
+public class IndexServiceImpl implements IndexService, InitializingBean {
     private static final Logger LOGGER = Logger
             .getLogger(IndexServiceImpl.class);
 
-    private final DocumentsDatabaseIndexer documentsDatabaseIndexer;
+    @Autowired
+    @Inject
+    DocumentsDatabaseIndexer documentsDatabaseIndexer;
+
     private final ServiceJMXBeanImpl mbean;
 
     public IndexServiceImpl() {
-        this(new RepositoryFactory());
-    }
-
-    public IndexServiceImpl(final RepositoryFactory repositoryFactory) {
-        this(new DocumentsDatabaseIndexer(repositoryFactory));
-    }
-
-    public IndexServiceImpl(
-            final DocumentsDatabaseIndexer documentsDatabaseIndexer) {
-
-        if (documentsDatabaseIndexer == null) {
-            throw new NullPointerException(
-                    "documentsDatabaseIndexer not specified");
-        }
-        this.documentsDatabaseIndexer = documentsDatabaseIndexer;
         mbean = JMXRegistrar.getInstance().register(getClass());
     }
 
@@ -57,7 +51,8 @@ public class IndexServiceImpl implements IndexService {
     @Path("/primary/{index}")
     @Override
     public Response createIndexUsingPrimaryDatabase(
-            @PathParam("index") final String index) {
+            @PathParam("index") final String index,
+            @QueryParam("sourceDatabase") final String policyName) {
         if (GenericValidator.isBlankOrNull(index)) {
             return Response.status(RestClient.CLIENT_ERROR_BAD_REQUEST).type(
                     "text/plain").entity("index not specified\n").build();
@@ -70,7 +65,8 @@ public class IndexServiceImpl implements IndexService {
         final Timer timer = Metric
                 .newTimer("IndexServiceImpl.createIndexUsingPrimaryDatabase");
         try {
-            documentsDatabaseIndexer.indexUsingPrimaryDatabase(index);
+            documentsDatabaseIndexer.indexUsingPrimaryDatabase(index,
+                    policyName);
             mbean.incrementRequests();
 
             return Response.status(RestClient.OK_CREATED).entity(
@@ -95,6 +91,7 @@ public class IndexServiceImpl implements IndexService {
     @Override
     public Response createIndexUsingSecondaryDatabase(
             @PathParam("index") final String index,
+            @QueryParam("policyName") final String policyName,
             @QueryParam("sourceDatabase") final String sourceDatabase,
             @QueryParam("joinDatabase") final String joinDatabase,
             @QueryParam("indexIdInJoinDatabase") final String indexIdInJoinDatabase,
@@ -135,8 +132,8 @@ public class IndexServiceImpl implements IndexService {
         try {
 
             documentsDatabaseIndexer.indexUsingSecondaryDatabase(index,
-                    sourceDatabase, joinDatabase, indexIdInJoinDatabase,
-                    sourceIdInJoinDatabase);
+                    policyName, sourceDatabase, joinDatabase,
+                    indexIdInJoinDatabase, sourceIdInJoinDatabase);
             mbean.incrementRequests();
 
             return Response.status(RestClient.OK_CREATED).entity(
@@ -160,6 +157,7 @@ public class IndexServiceImpl implements IndexService {
     @Override
     public Response updateIndexUsingPrimaryDatabase(
             @PathParam("index") final String index,
+            @QueryParam("sourceDatabase") final String policyName,
             @QueryParam("docIds") final String docIds) {
         if (GenericValidator.isBlankOrNull(index)) {
             return Response.status(RestClient.CLIENT_ERROR_BAD_REQUEST).type(
@@ -189,7 +187,7 @@ public class IndexServiceImpl implements IndexService {
                 .newTimer("IndexServiceImpl.updateIndexUsingPrimaryDatabase");
         try {
             int succeeded = documentsDatabaseIndexer
-                    .updateIndexUsingPrimaryDatabase(index, ids);
+                    .updateIndexUsingPrimaryDatabase(index, policyName, ids);
             mbean.incrementRequests();
 
             return Response.ok().entity(
@@ -214,6 +212,7 @@ public class IndexServiceImpl implements IndexService {
     @Override
     public Response updateIndexUsingSecondaryDatabase(
             @PathParam("index") final String index,
+            @QueryParam("policyName") final String policyName,
             @QueryParam("sourceDatabase") final String sourceDatabase,
             @QueryParam("joinDatabase") final String joinDatabase,
             @QueryParam("indexIdInJoinDatabase") final String indexIdInJoinDatabase,
@@ -268,9 +267,9 @@ public class IndexServiceImpl implements IndexService {
 
         try {
             int succeeded = documentsDatabaseIndexer
-                    .updateIndexUsingSecondaryDatabase(index, sourceDatabase,
-                            joinDatabase, indexIdInJoinDatabase,
-                            sourceIdInJoinDatabase, ids);
+                    .updateIndexUsingSecondaryDatabase(index, policyName,
+                            sourceDatabase, joinDatabase,
+                            indexIdInJoinDatabase, sourceIdInJoinDatabase, ids);
             mbean.incrementRequests();
 
             return Response.ok().entity(
@@ -287,4 +286,28 @@ public class IndexServiceImpl implements IndexService {
         }
 
     }
+
+    /**
+     * @return the documentsDatabaseIndexer
+     */
+    public DocumentsDatabaseIndexer getDocumentsDatabaseIndexer() {
+        return documentsDatabaseIndexer;
+    }
+
+    /**
+     * @param documentsDatabaseIndexer
+     *            the documentsDatabaseIndexer to set
+     */
+    public void setDocumentsDatabaseIndexer(
+            DocumentsDatabaseIndexer documentsDatabaseIndexer) {
+        this.documentsDatabaseIndexer = documentsDatabaseIndexer;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (documentsDatabaseIndexer == null) {
+            throw new IllegalStateException("documentsDatabaseIndexer not set");
+        }
+    }
+
 }

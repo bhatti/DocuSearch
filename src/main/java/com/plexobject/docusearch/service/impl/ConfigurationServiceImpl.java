@@ -15,6 +15,10 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.validator.GenericValidator;
 import org.apache.log4j.Logger;
 import org.codehaus.jettison.json.JSONObject;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import com.plexobject.docusearch.converter.Converters;
 import com.plexobject.docusearch.http.RestClient;
@@ -23,30 +27,30 @@ import com.plexobject.docusearch.jmx.JMXRegistrar;
 import com.plexobject.docusearch.jmx.impl.ServiceJMXBeanImpl;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
-import com.plexobject.docusearch.persistence.RepositoryFactory;
 import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.QueryPolicy;
 import com.plexobject.docusearch.service.ConfigurationService;
+import com.sun.jersey.spi.inject.Inject;
 
 /**
  * @author Shahzad Bhatti
  * 
  */
 @Path("/config")
-public class ConfigurationServiceImpl implements ConfigurationService {
+@Component("configService")
+@Scope("singleton")
+public class ConfigurationServiceImpl implements ConfigurationService,
+        InitializingBean {
     private static final Logger LOGGER = Logger
             .getLogger(ConfigurationServiceImpl.class);
-    private final ConfigurationRepository configRepository;
-    private final ServiceJMXBeanImpl mbean;
+    @Autowired
+    @Inject
+    ConfigurationRepository configRepository;
+
+    ServiceJMXBeanImpl mbean;
 
     public ConfigurationServiceImpl() {
-        this(new RepositoryFactory());
-    }
-
-    public ConfigurationServiceImpl(final RepositoryFactory repositoryFactory) {
-        this.configRepository = repositoryFactory.getConfigurationRepository();
         mbean = JMXRegistrar.getInstance().register(getClass());
-
     }
 
     /*
@@ -290,7 +294,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
             final LookupPolicy savedPolicy = configRepository.saveLookupPolicy(
                     index, policy);
             final JSONObject jsonRes = Converters.getInstance().getConverter(
-                    QueryPolicy.class, JSONObject.class).convert(savedPolicy);
+                    LookupPolicy.class, JSONObject.class).convert(savedPolicy);
             mbean.incrementRequests();
 
             return Response.status(RestClient.OK_CREATED).entity(
@@ -313,4 +317,26 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         }
     }
 
+    /**
+     * @return the configRepository
+     */
+    public ConfigurationRepository getConfigRepository() {
+        return configRepository;
+    }
+
+    /**
+     * @param configRepository
+     *            the configRepository to set
+     */
+    public void setConfigRepository(ConfigurationRepository configRepository) {
+        this.configRepository = configRepository;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (configRepository == null) {
+            throw new IllegalStateException("configRepository not set");
+        }
+
+    }
 }

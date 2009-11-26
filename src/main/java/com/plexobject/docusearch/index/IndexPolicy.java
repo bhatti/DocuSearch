@@ -1,7 +1,6 @@
 package com.plexobject.docusearch.index;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -29,18 +28,26 @@ public class IndexPolicy {
         public final boolean analyze;
         public final boolean tokenize;
         public final float boost;
+        public final boolean sortableNumber;
+        public final boolean spatialLatitude;
+        public final boolean spatialLongitude;
 
         public Field(final String name) {
-            this(name, false, true, false, 0.0F);
+            this(name, false, true, false, 0.0F, false, false, false);
         }
 
         public Field(final String name, final boolean storeInIndex,
-                final boolean analyze, final boolean tokenize, final float boost) {
+                final boolean analyze, final boolean tokenize,
+                final float boost, final boolean sortableNumber,
+                final boolean spatialLatitude, final boolean spatialLongitude) {
             this.name = name;
             this.storeInIndex = storeInIndex;
             this.analyze = analyze;
             this.tokenize = tokenize;
             this.boost = boost;
+            this.sortableNumber = sortableNumber;
+            this.spatialLatitude = spatialLatitude;
+            this.spatialLongitude = spatialLongitude;
         }
 
         /**
@@ -72,7 +79,9 @@ public class IndexPolicy {
             return new ToStringBuilder(this).append("name", this.name).append(
                     "storeInIndex", storeInIndex).append("analyze", analyze)
                     .append("tokenize", tokenize).append("boost", this.boost)
-                    .toString();
+                    .append("spatialLatitude", spatialLatitude).append(
+                            "spaitalLongitude", this.spatialLongitude).append(
+                            "sortableNumber", sortableNumber).toString();
         }
 
         @Override
@@ -95,12 +104,15 @@ public class IndexPolicy {
     }
 
     public void add(final String name) {
-        add(new Field(name, false, true, false, 0.0F));
+        add(new Field(name, false, true, false, 0.0F, false, false, false));
     }
 
     public void add(final String name, final boolean storeInIndex,
-            final boolean analyze, final boolean tokenize, final float boost) {
-        add(new Field(name, storeInIndex, analyze, tokenize, boost));
+            final boolean analyze, final boolean tokenize, final float boost,
+            final boolean sortableNumber, final boolean spatialLatitude,
+            final boolean spatialLongitude) {
+        add(new Field(name, storeInIndex, analyze, tokenize, boost,
+                sortableNumber, spatialLatitude, spatialLongitude));
     }
 
     public void add(final Field field) {
@@ -158,6 +170,24 @@ public class IndexPolicy {
 
     public boolean hasOwner() {
         return owner != null && owner.length() > 0;
+    }
+
+    public Field getLatitudeField() {
+        for (Field field : getFields()) {
+            if (field.spatialLatitude) {
+                return field;
+            }
+        }
+        return null;
+    }
+
+    public Field getLongitudeField() {
+        for (Field field : getFields()) {
+            if (field.spatialLongitude) {
+                return field;
+            }
+        }
+        return null;
     }
 
     /**

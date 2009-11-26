@@ -1,7 +1,7 @@
 ﻿== Getting Started ==
 To get started download the source using:
 {{{
-git clone git://github.com/bhatti/DocuSearch.git
+svn checkout http://docusearch.googlecode.com/svn/trunk/ docusearch-read-only  
 }}}
 You will need to install Java 1.6, Maven 2.0+ and CouchDB before start using the services. On Mac, you can install CouchDB via:
 {{{
@@ -127,11 +127,6 @@ This feature can be tested from HTML interface by clicking on similar link, e.g.
 
 
 == Conclusion ==
-DocuSearch makes it easy to query documents on CouchDB, however I have also
-started adding support for Berkley DB if you choose to use it. I found CouchDB
-wastes a lot of space and is a bit slow so that may be alternative option for
-some. I also plan to add ngrams and stem based analyzers to create better search
-experience. I also welcome you to join the project. You can add yourself to
-http://github.com/bhatti/DocuSearch/ project and start contributing.
+DocuSearch makes it easy to query documents on CouchDB, however I have also started adding support for Berkley DB if you choose to use it. I found CouchDB wastes a lot of space and is a bit slow so that may be alternative option for some. I also plan to add ngrams and stem based analyzers to create better search experience. I also welcome you to join the project. You can add yourself to http://code.google.com/p/docusearch/ project and start contributing.
 
 

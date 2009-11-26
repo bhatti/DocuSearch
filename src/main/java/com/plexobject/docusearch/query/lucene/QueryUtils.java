@@ -3,14 +3,19 @@ package com.plexobject.docusearch.query.lucene;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.commons.validator.GenericValidator;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.DateTools;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryParser.MultiFieldQueryParser;
 import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.CachingWrapperFilter;
@@ -19,6 +24,7 @@ import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
 import org.apache.lucene.search.RangeFilter;
 import org.apache.lucene.search.ScoreDoc;
@@ -30,6 +36,8 @@ import org.apache.lucene.search.TopDocsCollector;
 import org.apache.lucene.search.TopFieldCollector;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.function.FieldScoreQuery;
+import org.apache.lucene.spatial.tier.DistanceQueryBuilder;
+import org.apache.lucene.util.Version;
 import org.apache.solr.search.BitDocSet;
 import org.apache.solr.search.DocIterator;
 import org.apache.solr.search.DocList;
@@ -42,6 +50,7 @@ import com.plexobject.docusearch.converter.Constants;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.Tuple;
 import com.plexobject.docusearch.lucene.analyzer.SimilarityHelper;
+import com.plexobject.docusearch.query.QueryCriteria;
 import com.plexobject.docusearch.query.QueryPolicy;
 import com.plexobject.docusearch.query.SearchDoc;
 import com.plexobject.docusearch.query.lucene.QueryImpl.QueryType;
@@ -50,6 +59,7 @@ import com.plexobject.docusearch.query.lucene.QueryImpl.QueryType;
 public class QueryUtils {
     private static final int MAX_MAX_DAYS = Configuration.getInstance()
             .getInteger("lucene.recency.max.days", 2 * 365);
+    @SuppressWarnings("unused")
     private static final Pattern KEYWORD_SPLIT_PATTERN = Pattern
             .compile("['\"\\.,;:\\[\\]{}()\\s]");
     private static final double DEFAULT_MULTIPLIER = Configuration
@@ -144,7 +154,8 @@ public class QueryUtils {
     private Tuple sliceResults(final int offset, final int len, TopDocs docs) {
         double[][] docsAndScores;
         int maxDocsToReturn;
-        maxDocsToReturn = Math.min(docs.scoreDocs.length - offset, len);
+        maxDocsToReturn = Math.max(0, Math.min(docs.scoreDocs.length - offset,
+                len));
         docsAndScores = new double[maxDocsToReturn][];
 
         for (int i = 0; i < docs.scoreDocs.length; i++) {
@@ -234,6 +245,18 @@ public class QueryUtils {
 
     }
 
+    public static DistanceQueryBuilder getDistanceQueryBuilder(
+            final String latField, final String lngField,
+            final QueryCriteria criteria) {
+        double latitude = criteria.getLatitude();
+        double longitude = criteria.getLongitude();
+
+        final DistanceQueryBuilder distanceQueryBuilder = new DistanceQueryBuilder(
+                latitude, longitude, criteria.getRadius(), latField, lngField,
+                Constants.TIER_PREFIX, true);
+        return distanceQueryBuilder;
+    }
+
     org.apache.lucene.search.Query boostQuery(
             final org.apache.lucene.search.Query q, int maxDays,
             double multiplier) throws IOException, ParseException,
@@ -321,42 +344,38 @@ public class QueryUtils {
         return new Sort(scores.toArray(new SortField[scores.size()]));
     }
 
-    static org.apache.lucene.search.Query keywordsQuery(final String index,
-            final String keywords, final QueryPolicy policy,
-            final Collection<String> similarWords, final QueryType queryType)
-            throws IOException, ParseException {
+    static org.apache.lucene.search.Query keywordsQuery(
+            final Analyzer analyzer, final String index, final String keywords,
+            final QueryPolicy policy, final Collection<String> similarWords,
+            final QueryType queryType) throws IOException, ParseException {
         if (GenericValidator.isBlankOrNull(keywords)) {
             throw new IllegalArgumentException("keywords not specified");
         }
-        final BooleanQuery query = new BooleanQuery();
+        final List<String> fields = new ArrayList<String>();
+        final Map<String, Float> boosts = new HashMap<String, Float>();
+
         for (QueryPolicy.Field field : policy.getFields()) {
             if (GenericValidator.isBlankOrNull(field.name)) {
                 throw new IllegalArgumentException(
                         "field name not specified for " + field + " in policy "
                                 + policy);
             }
-            final String[] words = keywords.startsWith("\"")
-                    || keywords.startsWith("'") ? new String[] { keywords
-                    .substring(1, keywords.length() - 1) }
-                    : KEYWORD_SPLIT_PATTERN.split(keywords);
-            float orderFactor = 1.0F; // give higher boost to last words
-            for (String word : words) {
-                word = word.trim();
-                if (word.length() == 0) {
-                    continue;
-                }
-                final Term term = new Term(field.name, word);
-
-                final org.apache.lucene.search.Query q = QueryUtils
-                        .createQuery(queryType, term);
-                if (field.boost != 0) {
-                    q.setBoost(field.boost * orderFactor);
-                }
-
-                query.add(q, BooleanClause.Occur.SHOULD);
-                orderFactor += 0.2F;
+            fields.add(field.name);
+            if (field.boost != 0) {
+                boosts.put(field.name, field.boost);
             }
         }
+        final MultiFieldQueryParser parser = new MultiFieldQueryParser(
+                Version.LUCENE_CURRENT, fields
+                        .toArray(new String[fields.size()]), analyzer, boosts);
+        parser.setAllowLeadingWildcard(queryType == QueryType.PREFIX
+                || queryType == QueryType.WILDCARD);
+        parser.setDefaultOperator(QueryParser.Operator.OR);
+        // parser.setFuzzyPrefixLength(3);
+        // parser.setPhraseSlop(1);
+
+        final Query query = parser.parse(keywords.trim());
+        // query.add(q, BooleanClause.Occur.SHOULD);
         if (similarWords != null) {
             final String similar = SimilarityHelper.getInstance().didYouMean(
                     index, keywords);

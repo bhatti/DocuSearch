@@ -23,55 +23,55 @@ import com.plexobject.docusearch.persistence.DocumentRepository;
  */
 public class BiRelationMerger extends BaseRelationMerger {
 
-	public BiRelationMerger(final File configFile) throws IOException {
-		super(configFile);
+    public BiRelationMerger(final File configFile) throws IOException {
+        super(configFile);
 
-	}
+    }
 
-	public BiRelationMerger(final DocumentRepository repository,
-			final File configFile) throws IOException {
-		super(repository, configFile);
+    public BiRelationMerger(final DocumentRepository repository,
+            final File configFile) throws IOException {
+        super(repository, configFile);
 
-	}
+    }
 
-	public BiRelationMerger(final Properties props) {
-		super(props);
-	}
+    public BiRelationMerger(final Properties props) {
+        super(props);
+    }
 
-	public BiRelationMerger(final DocumentRepository repository,
-			final Properties props) {
-		super(repository, props);
-	}
+    public BiRelationMerger(final DocumentRepository repository,
+            final Properties props) {
+        super(repository, props);
+    }
 
-	@Override
-	protected String getSourceDatabase() {
-		return fromDatabase;
-	}
+    @Override
+    protected String getSourceDatabase() {
+        return fromDatabase;
+    }
 
-	@Override
-	protected Collection<Document> getFromDocuments(
-			final Document sourceDocument, final String fromIdValue) {
-		return Arrays.asList(sourceDocument);
-	}
+    @Override
+    protected Collection<Document> getFromDocuments(
+            final Document sourceDocument, final String fromIdValue) {
+        return Arrays.asList(sourceDocument);
+    }
 
-	private static void usage() {
-		System.err.println("Usage: <config-file-name>");
-		System.exit(1);
-	}
+    private static void usage() {
+        System.err.println("Usage: <config-file-name>");
+    }
 
-	public static void main(String[] args) throws IOException {
-		Logger root = Logger.getRootLogger();
-		root.setLevel(Level.INFO);
+    public static void main(String[] args) throws IOException {
+        Logger root = Logger.getRootLogger();
+        root.setLevel(Level.INFO);
 
-		root.addAppender(new ConsoleAppender(new PatternLayout(
-				PatternLayout.TTCC_CONVERSION_PATTERN)));
+        root.addAppender(new ConsoleAppender(new PatternLayout(
+                PatternLayout.TTCC_CONVERSION_PATTERN)));
 
-		if (args.length != 1) {
-			usage();
-		}
+        if (args.length != 1) {
+            usage();
+            return;
+        }
 
-		new BiRelationMerger(new File(args[0])).run();
-		// new BiRelationMerger(new
-		// File("data/merge_ticker_tags.properties")).run();
-	}
+        new BiRelationMerger(new File(args[0])).run();
+        // new BiRelationMerger(new
+        // File("data/merge_ticker_tags.properties")).run();
+    }
 }

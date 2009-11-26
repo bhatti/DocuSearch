@@ -13,7 +13,12 @@ public interface SearchService {
      * SearchDocList.
      * 
      * @param index
+     * @param owner
      * @param keywords
+     * @param zipCode
+     *            - for spatial search
+     * @param radius
+     *            - for spatial search
      * @param includeSuggestions
      *            - include suggestions for similar keywords
      * @param start
@@ -22,8 +27,8 @@ public interface SearchService {
      *            - send detailed results
      * @return JSONObject for SearchDocList
      */
-    Response query(String index, String owner, String keywords,
-            boolean includeSuggestions, int start, int limit,
+    Response query(String index, String owner, String keywords, String zipCode,
+            String radius, boolean includeSuggestions, int start, int limit,
             boolean detailedResults);
 
     /**
@@ -56,12 +61,18 @@ public interface SearchService {
      * This method collection of explanations for query results.
      * 
      * @param index
+     * @param owner
      * @param keywords
+     * @param zipCode
+     *            - for spatial search
+     * @param radius
+     *            - for spatial search
      * @param start
      * @param limit
      * @return JSONArray for explanations
      */
-    Response explain(String index, String keywords, int start, int limit);
+    Response explain(String index, String owner, String keywords,
+            String zipCode, String radius, int start, int limit);
 
     /**
      * 

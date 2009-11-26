@@ -1,7 +1,5 @@
 package com.plexobject.docusearch.lucene.analyzer;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Reader;
 import java.util.Arrays;
 import java.util.Properties;
@@ -11,25 +9,38 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.LowerCaseFilter;
 import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.solr.analysis.SynonymFilter;
 import org.apache.solr.analysis.SynonymMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import com.plexobject.docusearch.docs.DocumentPropertiesHelper;
+import com.plexobject.docusearch.lucene.LuceneUtils;
+import com.sun.jersey.spi.inject.Inject;
+
+@Component("synonymAnalyzer")
 public class SynonymAnalyzer extends Analyzer {
     private static Logger LOGGER = Logger.getLogger(SynonymAnalyzer.class);
     private static final String SYNONYMS_DATA = "synonyms.properties";
     final SynonymMap synonymMap;
-    final static SynonymMap defaultSynonymMap = getDefaultSynonymMap();
+
+    @Autowired
+    @Inject
+    DocumentPropertiesHelper documentPropertiesHelper = new DocumentPropertiesHelper();
+    static SynonymMap defaultSynonymMap;;
 
     public SynonymAnalyzer() {
-        this(defaultSynonymMap);
+        this(null);
     }
 
-    public SynonymAnalyzer(final SynonymMap synonymMap) {
+    public SynonymAnalyzer(SynonymMap synonymMap) {
         if (synonymMap == null) {
-            throw new NullPointerException("synonymMap is not specified");
+            if (defaultSynonymMap == null) {
+                defaultSynonymMap = getDefaultSynonymMap();
+            }
+            synonymMap = defaultSynonymMap;
         }
         this.synonymMap = synonymMap;
     }
@@ -38,43 +49,30 @@ public class SynonymAnalyzer extends Analyzer {
     public TokenStream tokenStream(String fieldName, Reader reader) {
         TokenStream result = new SynonymFilter(new StopFilter(true,
                 new LowerCaseFilter(new StandardFilter(new StandardTokenizer(
-                        reader))), StandardAnalyzer.STOP_WORDS_SET), synonymMap);
+                        reader))), LuceneUtils.STOP_WORDS_SET), synonymMap);
         return result;
     }
 
-    private static SynonymMap getDefaultSynonymMap() {
+    private SynonymMap getDefaultSynonymMap() {
         final boolean ignoreCase = true;
         final SynonymMap synMap = new SynonymMap(ignoreCase);
-
-        final Properties synDefs = new Properties();
-        final InputStream in = SynonymAnalyzer.class.getClassLoader()
-                .getResourceAsStream(SYNONYMS_DATA);
-        if (in != null) {
-            try {
-                synDefs.load(in);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to load " + SYNONYMS_DATA, e);
-            }
-            for (String name : synDefs.stringPropertyNames()) {
-                final String replacement = name.trim();
-                final String match = synDefs.getProperty(name).trim();
-                if (!replacement.equalsIgnoreCase(match)) {
-                    final boolean orig = false;
-                    final boolean merge = true;
-                    synMap.add(Arrays.asList(match), SynonymMap
-                            .makeTokens(Arrays.asList(replacement)), orig,
-                            merge);
-                }
-            }
-            if (LOGGER.isInfoEnabled()) {
-                LOGGER.info("Added " + synDefs.size() + " synonyms ");
-            }
-        } else {
-            if (LOGGER.isInfoEnabled()) {
-                LOGGER.info("Could not find " + SYNONYMS_DATA);
+        Properties synDefs = null;
+        try {
+            synDefs = documentPropertiesHelper.load(SYNONYMS_DATA);
+        } catch (Exception e) {
+            LOGGER.error("Failed to load " + SYNONYMS_DATA, e);
+            synDefs = new Properties();
+        }
+        for (String name : synDefs.stringPropertyNames()) {
+            final String replacement = name.trim();
+            final String match = synDefs.getProperty(name).trim();
+            if (!replacement.equalsIgnoreCase(match)) {
+                final boolean orig = false;
+                final boolean merge = true;
+                synMap.add(Arrays.asList(match), SynonymMap.makeTokens(Arrays
+                        .asList(replacement)), orig, merge);
             }
         }
-
         return synMap;
     }
 }

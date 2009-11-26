@@ -23,6 +23,7 @@ import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
 import com.plexobject.docusearch.domain.Tuple;
 import com.plexobject.docusearch.http.RestClient;
+import com.plexobject.docusearch.http.impl.RestClientImpl;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
 import com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb;
@@ -100,9 +101,9 @@ public class DocumentRepositoryCouchdbTest {
         Assert.assertEquals(0, saved.size());
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testNullServer() throws Exception {
-        repository = new DocumentRepositoryCouchdb(null, null, null);
+    @Test(expected = NullPointerException.class)
+    public void testNullRestClient() throws Exception {
+        repository = new DocumentRepositoryCouchdb(null);
     }
 
     @Test(expected = PersistenceException.class)
@@ -110,16 +111,16 @@ public class DocumentRepositoryCouchdbTest {
         EasyMock.expect(httpClient.put(DB_NAME, null)).andReturn(
                 new Tuple(401, ""));
         EasyMock.replay(httpClient);
-        repository = new DocumentRepositoryCouchdb(NON_EXISTING_COUCH_DB_URL,
-                "bad", "bad");
+        repository = new DocumentRepositoryCouchdb(new RestClientImpl(
+                NON_EXISTING_COUCH_DB_URL, "bad", "bad"));
         repository.createDatabase(DB_NAME);
         verifyMock();
     }
 
     @Test(expected = PersistenceException.class)
     public void testGetAllDatabasesWithBadServer() throws Exception {
-        repository = new DocumentRepositoryCouchdb(NON_EXISTING_COUCH_DB_URL,
-                null, null);
+        repository = new DocumentRepositoryCouchdb(new RestClientImpl(
+                NON_EXISTING_COUCH_DB_URL, null, null));
         repository.getAllDatabases();
     }
 
@@ -168,7 +169,7 @@ public class DocumentRepositoryCouchdbTest {
 
     @Test(expected = NullPointerException.class)
     public void testSaveNullDocument() throws Exception {
-        repository.saveDocument(null);
+        repository.saveDocument(null, false);
     }
 
     @Test
@@ -181,7 +182,7 @@ public class DocumentRepositoryCouchdbTest {
                         "{\"ok\":true,\"id\":\"1\",\"rev\":\"1\"}"));
         EasyMock.replay(httpClient);
 
-        original = repository.saveDocument(original);
+        original = repository.saveDocument(original, false);
         verifyMock();
 
         EasyMock.reset(httpClient);
@@ -361,7 +362,7 @@ public class DocumentRepositoryCouchdbTest {
                             "{\"ok\":true,\"id\":\"1\",\"rev\":\"1\"}"));
             EasyMock.replay(httpClient);
 
-            repository.saveDocument(original);
+            repository.saveDocument(original, true);
             EasyMock.reset(httpClient);
 
         }

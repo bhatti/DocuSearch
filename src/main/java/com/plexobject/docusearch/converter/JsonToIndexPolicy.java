@@ -47,6 +47,12 @@ public class JsonToIndexPolicy implements Converter<JSONObject, IndexPolicy> {
                         final String name = field.getString(Constants.NAME);
                         final boolean storeInIndex = field
                                 .optBoolean(Constants.STORE_IN_INDEX);
+                        final boolean sortableNumber = field
+                                .optBoolean(Constants.SORTABLE_NUMBER);
+                        final boolean spatialLatitude = field
+                                .optBoolean(Constants.SPATIAL_LATITUDE);
+                        final boolean spatialLongitude = field
+                                .optBoolean(Constants.SPATIAL_LONGITUDE);
                         boolean analyze = true;
                         if (field.has(Constants.ANALYZE)) {
                             analyze = field.getBoolean(Constants.ANALYZE);
@@ -63,7 +69,7 @@ public class JsonToIndexPolicy implements Converter<JSONObject, IndexPolicy> {
                         }
                         policy
                                 .add(name, storeInIndex, analyze, tokenize,
-                                        boost);
+                                        boost, sortableNumber, spatialLatitude, spatialLongitude);
                     }
                 }
             } catch (NumberFormatException e) {

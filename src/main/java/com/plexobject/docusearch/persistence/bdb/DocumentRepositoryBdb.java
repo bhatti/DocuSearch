@@ -58,8 +58,7 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#createDatabase
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#createDatabase
      * (java.lang.String)
      */
     @Override
@@ -79,8 +78,7 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#deleteDatabase
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#deleteDatabase
      * (java.lang.String)
      */
     @Override
@@ -110,9 +108,7 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#getAllDatabases
-     * ()
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#getAllDatabases()
      */
     @Override
     public String[] getAllDatabases() throws PersistenceException {
@@ -140,8 +136,7 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#getAllDocuments
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#getAllDocuments
      * (java.lang.String, long, int)
      */
     @Override
@@ -169,13 +164,12 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#getAllDocuments
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#getAllDocuments
      * (java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public PagedList<Document> getAllDocuments(String dbname,
-            String startKey, String endKey, int limit)
+    public PagedList<Document> getAllDocuments(final String dbname,
+            final String startKey, final String endKey, final int max)
             throws PersistenceException {
         if (GenericValidator.isBlankOrNull(dbname)) {
             throw new IllegalArgumentException("database name not specified");
@@ -186,6 +180,7 @@ public class DocumentRepositoryBdb implements DocumentRepository {
         if (GenericValidator.isBlankOrNull(endKey)) {
             throw new IllegalArgumentException("endKey name not specified");
         }
+        final int limit = Math.min(max, MAX_MAX_LIMIT);
         final Timer timer = Metric
                 .newTimer("DocumentRepositoryBdb.getAllDocuments");
         final boolean rangeFlag = true;
@@ -203,7 +198,7 @@ public class DocumentRepositoryBdb implements DocumentRepository {
             OperationStatus ostat = null;
 
             while ((ostat == OperationStatus.SUCCESS)
-                    && (numRecords < MAX_MAX_LIMIT)) {
+                    && (numRecords < limit)) {
                 final Document doc = docBinding.entryToObject(dbData);
                 documents.add(doc);
 
@@ -232,8 +227,7 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#getDocument(java
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#getDocument(java
      * .lang.String, java.lang.String)
      */
     @Override
@@ -270,9 +264,8 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#getDocuments
-     * (java .lang.String, java.lang.String[])
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#getDocuments(java
+     * .lang.String, java.lang.String[])
      */
     @Override
     public Map<String, Document> getDocuments(String database, String... ids)
@@ -283,9 +276,8 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#getDocuments
-     * (java .lang.String, java.util.Collection)
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#getDocuments(java
+     * .lang.String, java.util.Collection)
      */
     @Override
     public Map<String, Document> getDocuments(String dbName,
@@ -304,9 +296,8 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#getInfo(java
-     * .lang .String)
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#getInfo(java.lang
+     * .String)
      */
     @Override
     public Map<String, String> getInfo(String database)
@@ -317,12 +308,11 @@ public class DocumentRepositoryBdb implements DocumentRepository {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.persistence.DocumentRepository#saveDocument(com
+     * @see com.plexobject.docusearch.persistence.DocumentRepository#saveDocument(com
      * .plexobject.docusearch.domain.Document)
      */
     @Override
-    public Document saveDocument(Document document) throws PersistenceException {
+    public Document saveDocument(Document document, boolean overwrite) throws PersistenceException {
         if (document == null) {
             throw new NullPointerException("document not specified");
         }

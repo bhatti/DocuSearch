@@ -15,7 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.plexobject.docusearch.Configuration;
-import com.plexobject.docusearch.docs.DocumentsDatabaseSearcher;
+import com.plexobject.docusearch.docs.impl.DocumentsDatabaseSearcherImpl;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
 import com.plexobject.docusearch.index.IndexPolicy;
@@ -23,7 +23,6 @@ import com.plexobject.docusearch.index.lucene.IndexerImpl;
 import com.plexobject.docusearch.lucene.LuceneUtils;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.DocumentRepository;
-import com.plexobject.docusearch.persistence.RepositoryFactory;
 import com.plexobject.docusearch.persistence.SimpleDocumentsIterator;
 import com.plexobject.docusearch.query.QueryPolicy;
 
@@ -35,7 +34,7 @@ public class DocumentsDatabaseSearcherTest {
 
     private DocumentRepository repository;
     private ConfigurationRepository configRepository;
-    private DocumentsDatabaseSearcher searcher;
+    private DocumentsDatabaseSearcherImpl searcher;
 
     @Before
     public void setUp() throws Exception {
@@ -45,8 +44,9 @@ public class DocumentsDatabaseSearcherTest {
                 PatternLayout.TTCC_CONVERSION_PATTERN)));
         repository = EasyMock.createMock(DocumentRepository.class);
         configRepository = EasyMock.createMock(ConfigurationRepository.class);
-        searcher = new DocumentsDatabaseSearcher(new RepositoryFactory(
-                repository, configRepository));
+        searcher = new DocumentsDatabaseSearcherImpl();
+        searcher.setDocumentRepository(repository);
+        searcher.setConfigRepository(configRepository);
         index();
     }
 

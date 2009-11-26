@@ -159,7 +159,7 @@ public abstract class BaseRelationMerger implements Runnable {
                                 + " into " + toDocument + " resulting in  "
                                 + docBuilder.build());
                     }
-                    repository.saveDocument(docBuilder.build());
+                    repository.saveDocument(docBuilder.build(), true);
 
                 }
             }

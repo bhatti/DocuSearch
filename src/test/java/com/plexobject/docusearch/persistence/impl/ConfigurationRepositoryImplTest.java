@@ -16,7 +16,6 @@ import com.plexobject.docusearch.converter.Constants;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
 import com.plexobject.docusearch.index.IndexPolicy;
-import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
 import com.plexobject.docusearch.query.LookupPolicy;
@@ -42,7 +41,9 @@ public class ConfigurationRepositoryImplTest {
                 new PersistenceException(""));
         EasyMock.replay(repository);
 
-        new ConfigurationRepositoryImpl(DB_NAME, repository);
+        ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
+                DB_NAME);
+        configRepository.setDocumentRepository(repository);
         EasyMock.verify(repository);
     }
 
@@ -58,8 +59,9 @@ public class ConfigurationRepositoryImplTest {
                 .andReturn(newIndexPolicyDocument());
 
         EasyMock.replay(repository);
-        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
-                Configuration.getInstance().getConfigDatabase(), repository);
+        ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase());
+        configRepository.setDocumentRepository(repository);
         IndexPolicy policy = configRepository.getIndexPolicy(DB_NAME);
 
         Assert.assertEquals(newIndexPolicy(), policy);
@@ -79,8 +81,9 @@ public class ConfigurationRepositoryImplTest {
                 .andReturn(newQueryPolicyDocument());
 
         EasyMock.replay(repository);
-        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
-                Configuration.getInstance().getConfigDatabase(), repository);
+        ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase());
+        configRepository.setDocumentRepository(repository);
         QueryPolicy policy = configRepository.getQueryPolicy(DB_NAME);
 
         Assert.assertEquals(newQueryPolicy(), policy);
@@ -99,8 +102,9 @@ public class ConfigurationRepositoryImplTest {
                 .andReturn(newQueryPolicyDocument());
 
         EasyMock.replay(repository);
-        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
-                Configuration.getInstance().getConfigDatabase(), repository);
+        ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase());
+        configRepository.setDocumentRepository(repository);
         QueryPolicy policy = configRepository.getLookupPolicy(DB_NAME);
 
         Assert.assertEquals(newQueryPolicy(), policy);
@@ -117,11 +121,12 @@ public class ConfigurationRepositoryImplTest {
                 repository.getDocument(Configuration.getInstance()
                         .getConfigDatabase(), "index_policy_for_" + DB_NAME))
                 .andReturn(newIndexPolicyDocument());
-        EasyMock.expect(repository.saveDocument(doc)).andReturn(doc);
+        EasyMock.expect(repository.saveDocument(doc, true)).andReturn(doc);
 
         EasyMock.replay(repository);
-        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
-                Configuration.getInstance().getConfigDatabase(), repository);
+        ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase());
+        configRepository.setDocumentRepository(repository);
         IndexPolicy policy = configRepository.saveIndexPolicy(DB_NAME,
                 newIndexPolicy());
 
@@ -139,11 +144,12 @@ public class ConfigurationRepositoryImplTest {
                 repository.getDocument(Configuration.getInstance()
                         .getConfigDatabase(), "query_policy_for_" + DB_NAME))
                 .andReturn(newQueryPolicyDocument());
-        EasyMock.expect(repository.saveDocument(doc)).andReturn(doc);
+        EasyMock.expect(repository.saveDocument(doc, true)).andReturn(doc);
 
         EasyMock.replay(repository);
-        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
-                Configuration.getInstance().getConfigDatabase(), repository);
+        ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase());
+        configRepository.setDocumentRepository(repository);
         QueryPolicy policy = configRepository.saveQueryPolicy(DB_NAME,
                 newQueryPolicy());
 
@@ -161,11 +167,12 @@ public class ConfigurationRepositoryImplTest {
                 repository.getDocument(Configuration.getInstance()
                         .getConfigDatabase(), "lookup_policy_for_" + DB_NAME))
                 .andReturn(newQueryPolicyDocument());
-        EasyMock.expect(repository.saveDocument(doc)).andReturn(doc);
+        EasyMock.expect(repository.saveDocument(doc, true)).andReturn(doc);
 
         EasyMock.replay(repository);
-        ConfigurationRepository configRepository = new ConfigurationRepositoryImpl(
-                Configuration.getInstance().getConfigDatabase(), repository);
+        ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
+                Configuration.getInstance().getConfigDatabase());
+        configRepository.setDocumentRepository(repository);
         LookupPolicy policy = configRepository.saveLookupPolicy(DB_NAME,
                 newLookupPolicy());
 
@@ -178,7 +185,8 @@ public class ConfigurationRepositoryImplTest {
         policy.setScore(10);
         policy.setBoost(20.5F);
         for (int i = 0; i < 10; i++) {
-            policy.add("name" + i, i % 2 == 0, i % 2 == 1, i % 2 == 1, 1.1F);
+            policy.add("name" + i, i % 2 == 0, i % 2 == 1, i % 2 == 1, 1.1F,
+                    false, false, false);
         }
         return policy;
     }

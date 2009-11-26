@@ -47,6 +47,21 @@ public class MapToIndexPolicy implements
                 for (Object f : fields) {
                     final Map<String, Object> field = (Map<String, Object>) f;
                     final String name = (String) field.get(Constants.NAME);
+                    boolean sortableNumber = false;
+                    if (field.containsKey(Constants.SORTABLE_NUMBER)) {
+                        sortableNumber = Boolean.valueOf(field.get(
+                                Constants.SORTABLE_NUMBER).toString());
+                    }
+                    boolean spatialLatitude = false;
+                    if (field.containsKey(Constants.SPATIAL_LATITUDE)) {
+                        spatialLatitude = Boolean.valueOf(field.get(
+                                Constants.SPATIAL_LATITUDE).toString());
+                    }
+                    boolean spatialLongitude = false;
+                    if (field.containsKey(Constants.SPATIAL_LONGITUDE)) {
+                        spatialLongitude = Boolean.valueOf(field.get(
+                                Constants.SPATIAL_LONGITUDE).toString());
+                    }
                     boolean storeInIndex = false;
                     if (field.containsKey(Constants.STORE_IN_INDEX)) {
                         storeInIndex = Boolean.valueOf(field.get(
@@ -70,7 +85,7 @@ public class MapToIndexPolicy implements
                                 .floatValue();
                     }
 
-                    policy.add(name, storeInIndex, analyze, tokenize, boost);
+                    policy.add(name, storeInIndex, analyze, tokenize, boost, sortableNumber, spatialLatitude, spatialLongitude);
                 }
 
             }

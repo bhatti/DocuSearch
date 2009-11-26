@@ -34,6 +34,9 @@ public class IndexPolicyToJson implements Converter<IndexPolicy, JSONObject> {
 					JSONObject jsonField = new JSONObject();
 					jsonField.put(Constants.NAME, field.name);
 					jsonField.put(Constants.STORE_IN_INDEX, field.storeInIndex);
+					jsonField.put(Constants.SORTABLE_NUMBER, field.sortableNumber);
+					jsonField.put(Constants.SPATIAL_LATITUDE, field.spatialLatitude);
+					jsonField.put(Constants.SPATIAL_LONGITUDE, field.spatialLongitude);
 					jsonField.put(Constants.TOKENIZE, field.tokenize);
 					jsonField.put(Constants.ANALYZE, field.analyze);
 					jsonField.put(Constants.BOOST, field.boost);

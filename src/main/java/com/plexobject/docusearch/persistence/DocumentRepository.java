@@ -46,11 +46,13 @@ public interface DocumentRepository {
     /**
      * @param document
      *            - document containing database, id and attributes
+     * @param overwrite
+     *            - overwrites in case of revision mismatch
      * @return - saved document
      * @throws PersistenceException
      *             is thrown when error occurs while saving the database.
      */
-    public Document saveDocument(final Document document)
+    public Document saveDocument(final Document document, boolean overwrite)
             throws PersistenceException;
 
     /**

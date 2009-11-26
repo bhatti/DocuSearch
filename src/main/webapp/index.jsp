@@ -29,7 +29,7 @@
 				top()
 			});
 		       if (false) { 
-			$("#keywords").autocomplete("/svc/search/autocomplete/efile_providers",
+			$("#keywords").autocomplete("/api/search/autocomplete/efile_providers",
 			{
 				delay:10,
 				minChars:2,
@@ -44,7 +44,7 @@
 	
 	//$("#search_form").submit( function() { search() }); $(".kw").change(function() {search()}); 
 	function show(id) {
-		var href = "/svc/storage/efile_providers/" + id;
+		var href = "/api/storage/efile_providers/" + id;
 		$('#ajax_loading').show();
 		jQuery.ajax( {
 			type : "GET",
@@ -76,7 +76,7 @@
 	}
 
 	function similar(externalId, luceneId) {
-		var href = "/svc/search/similar/efile_providers?externalId=" + externalId + "&luceneId=" + luceneId + "&detailedResults=true";
+		var href = "/api/search/similar/efile_providers?externalId=" + externalId + "&luceneId=" + luceneId + "&detailedResults=true";
 		doSearch(href, '#details');
 	}
 
@@ -84,7 +84,7 @@
 		var kw = $("input#keywords").val();
 		var zipCode = ''; //$("input#zipCode").val();
 		var radius = ''; // $("#radius").val();
-		var href = "/svc/search/efile_providers?suggestions=true&zipCode=" + zipCode + "&radius=" + radius + "&keywords=" + kw;
+		var href = "/api/search/efile_providers?suggestions=true&zipCode=" + zipCode + "&radius=" + radius + "&keywords=" + kw;
 		doSearch(href, '#summary');
 	}
 
@@ -187,7 +187,7 @@
 
 	function explain() {
 		var kw = $("input#keywords").val();
-		var href = "/svc/search/explain/efile_providers?keywords="
+		var href = "/api/search/explain/efile_providers?keywords="
 				+ kw;
 		$('#ajax_loading').show();
 		$('#details').empty();
@@ -218,7 +218,7 @@
 		});
 	}
 	function top() {
-		var href = "/svc/search/rank/efile_providers?limit=1000";
+		var href = "/api/search/rank/efile_providers?limit=1000";
 		$('#ajax_loading').show();
 		$('#details').empty();
 

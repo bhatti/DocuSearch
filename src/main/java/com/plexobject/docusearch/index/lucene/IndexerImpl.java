@@ -21,7 +21,12 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.spatial.tier.projections.CartesianTierPlotter;
+import org.apache.lucene.spatial.tier.projections.IProjector;
+import org.apache.lucene.spatial.tier.projections.SinusoidalProjector;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.NumericUtils;
+
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -41,6 +46,8 @@ import com.plexobject.docusearch.metrics.Timer;
  * @author Shahzad Bhatti
  * 
  */
+// http://www.liferay.com/web/guest/community/forums/-/message_boards/message/4048205
+// http://www.opensubscriber.com/message/java-user@lucene.apache.org/3646117.html
 public class IndexerImpl implements Indexer {
     private static final Logger LOGGER = Logger.getLogger(IndexerImpl.class);
     private static final boolean OPTIMIZE = true;
@@ -162,31 +169,33 @@ public class IndexerImpl implements Indexer {
             ldoc.add(new Field("score", Integer.toString(policy.getScore()),
                     Field.Store.NO, Field.Index.NOT_ANALYZED_NO_NORMS));
         }
+        double spatialLatitude = 0;
+        double spatialLongitude = 0;
         for (String name : doc.getAttributeNames()) {
             try {
                 IndexPolicy.Field field = policy.getField(name);
                 if (field == null) {
                     if (!INDEXED_FIELDS.containsKey(name)) {
                         INDEXED_FIELDS.put(name, Boolean.TRUE);
-                        if (LOGGER.isInfoEnabled()) {
-                            LOGGER.info("Skipping indexing " + name
-                                    + " field for " + indexName + " from "
-                                    + doc.getDatabase());
-                        }
                     }
-
                     continue; // skip field that are not specified in the policy
                 } else {
                     if (!INDEXED_FIELDS.containsKey(name)) {
                         INDEXED_FIELDS.put(name, Boolean.TRUE);
-                        if (LOGGER.isInfoEnabled()) {
-                            LOGGER.info("Will index " + name + " field for "
-                                    + indexName + " from " + doc.getDatabase());
-                        }
                     }
                 }
-                final String value = getValue(json, name);
+                String value = getValue(json, name);
                 if (value != null) {
+                    if (value.length() > 0
+                            && (field.sortableNumber || field.spatialLatitude || field.spatialLongitude)) {
+                        double d = Double.valueOf(value);
+                        if (field.spatialLatitude) {
+                            spatialLatitude = d;
+                        } else if (field.spatialLongitude) {
+                            spatialLongitude = d;
+                        }
+                        value = NumericUtils.doubleToPrefixCoded(d);
+                    }
                     final Field.Store store = field.storeInIndex ? Field.Store.YES
                             : Field.Store.NO;
                     final Field.Index index = field.tokenize ? Field.Index.TOKENIZED
@@ -194,8 +203,12 @@ public class IndexerImpl implements Indexer {
                                     : Field.Index.NOT_ANALYZED;
                     final Field.TermVector termVector = field.tokenize ? Field.TermVector.YES
                             : Field.TermVector.NO;
-                    final Field locField = new Field(doc.getDatabase() + "."
-                            + name, value, store, index, termVector);
+                    final Field locField = field.sortableNumber
+                            || field.spatialLatitude || field.spatialLongitude ? new Field(
+                            doc.getDatabase() + "." + name, value,
+                            Field.Store.YES, Field.Index.NOT_ANALYZED)
+                            : new Field(doc.getDatabase() + "." + name, value,
+                                    store, index, termVector);
                     locField.setBoost(field.boost);
                     ldoc.add(locField);
                     if (policy.isAddToDictionary()) {
@@ -211,6 +224,32 @@ public class IndexerImpl implements Indexer {
                 LOGGER.error("Failed to index value for " + name + " from "
                         + json + " due to ", e);
                 throw new RuntimeException(e.toString());
+            }
+        }
+
+        if (LOGGER.isInfoEnabled() && INDEXED_FIELDS.size() > 2) {
+            LOGGER.info("Will index " + INDEXED_FIELDS.keySet() + " field for "
+                    + indexName + " from " + doc.getDatabase());
+        }
+        //
+        if (spatialLatitude != 0 && spatialLongitude != 0) {
+            final IProjector projector = new SinusoidalProjector();
+            int startTier = 5; // About 1000 mile bestFit
+            final int endTier = 15; // about 1 mile bestFit
+            for (; startTier <= endTier; startTier++) {
+                CartesianTierPlotter ctp = new CartesianTierPlotter(startTier,
+                        projector, Constants.TIER_PREFIX);
+                final double boxId = ctp.getTierBoxId(spatialLatitude,
+                        spatialLongitude);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("*********Adding field "
+                            + ctp.getTierFieldName() + ":" + boxId
+                            + ", spatialLatitude " + spatialLatitude
+                            + ", spatialLongitude " + spatialLongitude);
+                }
+                ldoc.add(new Field(ctp.getTierFieldName(), NumericUtils
+                        .doubleToPrefixCoded(boxId), Field.Store.YES,
+                        Field.Index.NOT_ANALYZED_NO_NORMS));
             }
         }
 
@@ -326,6 +365,8 @@ public class IndexerImpl implements Indexer {
                     sb.append(" ");
                 }
                 value = sb.toString();
+                LOGGER.info("xxxxxxxxxxxxxxxxAdding entire array of " + name
+                        + "=" + value);
             }
         }
         return value;

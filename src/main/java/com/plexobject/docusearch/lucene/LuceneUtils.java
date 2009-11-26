@@ -6,10 +6,15 @@ import java.io.StringReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.StopAnalyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -37,6 +42,7 @@ import com.plexobject.docusearch.lucene.analyzer.SynonymAnalyzer;
  * @author Shahzad Bhatti
  * 
  */
+@SuppressWarnings("serial")
 public final class LuceneUtils {
     private static final Logger LOGGER = Logger.getLogger(LuceneUtils.class);
     private static final String LUCENE_ANALYZER = "lucene.analyzer";
@@ -58,6 +64,22 @@ public final class LuceneUtils {
     public static final int COMMIT_MIN = Integer.getInteger(
             "lucene.commit.min", 5000);
 
+    private static final Map<File, Directory> cachedFSDirs = new HashMap<File, Directory>();
+
+    @SuppressWarnings("unchecked")
+    public static final Set<String> STOP_WORDS_SET = new HashSet<String>() {
+        {
+            for (int i = 0; i < 10; i++) {
+                add(String.valueOf(i));
+            }
+            add("also");
+            add("unless");
+            add("href");
+            add("may");
+            addAll(StandardAnalyzer.STOP_WORDS_SET);
+            addAll(StopAnalyzer.ENGLISH_STOP_WORDS_SET);
+        }
+    };
     private static final boolean LUCENE_DEBUG = Boolean
             .getBoolean("lucene.debug");
 
@@ -145,46 +167,48 @@ public final class LuceneUtils {
         return writer;
     }
 
-    public static Directory toFSDirectory(final File dir) {
-        // Create index directory if missing.
-        if (!dir.exists()) {
-            if (!dir.mkdirs()) {
-                LOGGER.fatal("Unable to create index dir "
-                        + dir.getAbsolutePath());
-                throw new Error("Unable to create index dir "
-                        + dir.getAbsolutePath());
-            }
-        }
-
-        // Verify index directory is writable.
-        if (!dir.canWrite()) {
-            LOGGER.fatal(dir.getAbsolutePath() + " is not writable.");
-            throw new Error(dir.getAbsolutePath() + " is not writable.");
-        }
-
-        try {
-            final Directory d = FSDirectory.open(dir);
-
-            // Check index prior to startup if it exists.
-            if (IndexReader.indexExists(d)) {
-                final CheckIndex check = new CheckIndex(d);
-                final CheckIndex.Status status = check.checkIndex();
-                if (status.clean) {
-                    LOGGER.debug("Index is clean.");
-                } else {
-                    LOGGER.warn("Index is not clean.");
+    public static synchronized Directory toFSDirectory(final File dir) {
+        Directory d = cachedFSDirs.get(dir);
+        if (d == null) {
+            // Create index directory if missing.
+            if (!dir.exists()) {
+                if (!dir.mkdirs()) {
+                    LOGGER.fatal("Unable to create index dir "
+                            + dir.getAbsolutePath());
+                    throw new Error("Unable to create index dir "
+                            + dir.getAbsolutePath());
                 }
             }
-            if (IndexWriter.isLocked(d)) {
-                LOGGER.warn("***Unlocking " + d + " directory for indexing");
-                IndexWriter.unlock(d);
-            }
-            return d;
 
-        } catch (IOException e) {
-            LOGGER.error("Failed to unlock index", e);
-            throw new RuntimeException(e);
+            // Verify index directory is writable.
+            if (!dir.canWrite()) {
+                LOGGER.fatal(dir.getAbsolutePath() + " is not writable.");
+                throw new Error(dir.getAbsolutePath() + " is not writable.");
+            }
+
+            try {
+                d = FSDirectory.open(dir);
+
+                // Check index prior to startup if it exists.
+                if (IndexReader.indexExists(d)) {
+                    final CheckIndex check = new CheckIndex(d);
+                    final CheckIndex.Status status = check.checkIndex();
+                    if (status.clean) {
+                        LOGGER.debug("Index is clean.");
+                    } else {
+                        LOGGER.warn("Index is not clean.");
+                    }
+                }
+                cachedFSDirs.put(dir, d);
+            } catch (Throwable e) {
+                LOGGER.error("Failed to unlock index", e);
+                throw new RuntimeException(
+                        "failed to open lucene index, check class path "
+                                + FSDirectory.class.getProtectionDomain()
+                                        .getCodeSource().getLocation(), e);
+            }
         }
+        return d;
     }
 
     public static Token[] tokensFromAnalysis(Analyzer analyzer, String text)

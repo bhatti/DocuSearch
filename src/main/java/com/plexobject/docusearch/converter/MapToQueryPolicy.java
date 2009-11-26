@@ -17,7 +17,6 @@ public class MapToQueryPolicy implements
      *            - Map object
      * @return QueryPolicy
      */
-    @SuppressWarnings("unchecked")
     @Override
     public QueryPolicy convert(final Map<String, Object> value) {
         final QueryPolicy policy = new QueryPolicy();

@@ -140,9 +140,9 @@ public class TriRelationMergerTest {
                 put("4", toDoc2);
             }
         }); // search by ticker_id
-        EasyMock.expect(repository.saveDocument(mergedDoc1)).andReturn(
+        EasyMock.expect(repository.saveDocument(mergedDoc1, true)).andReturn(
                 mergedDoc1);
-        EasyMock.expect(repository.saveDocument(mergedDoc2)).andReturn(
+        EasyMock.expect(repository.saveDocument(mergedDoc2, true)).andReturn(
                 mergedDoc2);
 
         final Properties props = new Properties();

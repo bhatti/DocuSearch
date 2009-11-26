@@ -22,26 +22,23 @@ import com.plexobject.docusearch.http.RestClient;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
-import com.plexobject.docusearch.persistence.RepositoryFactory;
-import com.plexobject.docusearch.service.RepositoryService;
 
 public class RepositoryServiceImplTest {
     private static final String DB_NAME = "test_db_delete_me";
     private static final long START_ID = System.currentTimeMillis();
     private DocumentRepository repository;
     private ConfigurationRepository configRepository;
-    private RepositoryService service;
+    private RepositoryServiceImpl service;
     private static boolean INTEGRATION_TEST = false;
 
     @Before
     public void setUp() throws Exception {
         repository = EasyMock.createMock(DocumentRepository.class);
         configRepository = EasyMock.createMock(ConfigurationRepository.class);
-        if (INTEGRATION_TEST) {
-            service = new RepositoryServiceImpl();
-        } else {
-            service = new RepositoryServiceImpl(new RepositoryFactory(
-                    repository, configRepository));
+        service = new RepositoryServiceImpl();
+
+        if (!INTEGRATION_TEST) {
+            service.documentRepository = repository;
         }
 
     }
@@ -90,7 +87,7 @@ public class RepositoryServiceImplTest {
     @Test
     public final void testDeleteWithPersistenceException() throws JSONException {
         EasyMock.expect(repository.deleteDocument(DB_NAME, "id", "1.0"))
-                .andThrow(new PersistenceException("error"));
+                .andThrow(new PersistenceException("test error"));
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
@@ -128,7 +125,7 @@ public class RepositoryServiceImplTest {
     @Test
     public final void testGetWithPersistenceException() throws JSONException {
         EasyMock.expect(repository.getDocument(DB_NAME, "id")).andThrow(
-                new PersistenceException("error"));
+                new PersistenceException("test error"));
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
@@ -169,8 +166,8 @@ public class RepositoryServiceImplTest {
         final String jsonOriginal = Converters.getInstance().getConverter(
                 Object.class, JSONObject.class).convert(original).toString();
 
-        EasyMock.expect(repository.saveDocument(original)).andThrow(
-                new PersistenceException("error"));
+        EasyMock.expect(repository.saveDocument(original, false)).andThrow(
+                new PersistenceException("test error"));
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
@@ -206,7 +203,7 @@ public class RepositoryServiceImplTest {
     }
 
     @Test
-    public final void testPuttWithBadVer() throws JSONException {
+    public final void testPuttWithBadVer() {
         Response response = service.put(DB_NAME, "id", "", "body");
         Assert.assertEquals(RestClient.SERVER_INTERNAL_ERROR, response
                 .getStatus());
@@ -227,8 +224,8 @@ public class RepositoryServiceImplTest {
         final String jsonOriginal = Converters.getInstance().getConverter(
                 Object.class, JSONObject.class).convert(original).toString();
 
-        EasyMock.expect(repository.saveDocument(original)).andThrow(
-                new PersistenceException("error"));
+        EasyMock.expect(repository.saveDocument(original, false)).andThrow(
+                new PersistenceException("test error"));
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
@@ -245,7 +242,8 @@ public class RepositoryServiceImplTest {
         final Document original = newDocument(START_ID + 1, null);
         final Document saved = newDocument(START_ID + 1, "1.0");
 
-        EasyMock.expect(repository.saveDocument(original)).andReturn(saved);
+        EasyMock.expect(repository.saveDocument(original, false)).andReturn(
+                saved);
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
@@ -282,7 +280,8 @@ public class RepositoryServiceImplTest {
         final Document original = newDocument(START_ID + 2, null);
         final Document saved = newDocument(START_ID + 2, "1.0");
 
-        EasyMock.expect(repository.saveDocument(original)).andReturn(saved);
+        EasyMock.expect(repository.saveDocument(original, false)).andReturn(
+                saved);
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
@@ -318,7 +317,8 @@ public class RepositoryServiceImplTest {
         final Document original = newDocument(START_ID + 3, null);
         Document saved = newDocument(START_ID + 3, "1.0");
 
-        EasyMock.expect(repository.saveDocument(original)).andReturn(saved);
+        EasyMock.expect(repository.saveDocument(original, false)).andReturn(
+                saved);
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
@@ -359,7 +359,8 @@ public class RepositoryServiceImplTest {
         final Document modified = new DocumentBuilder(saved).put("newkey",
                 "newvalue").build();
 
-        EasyMock.expect(repository.saveDocument(modified)).andReturn(modified);
+        EasyMock.expect(repository.saveDocument(modified, false)).andReturn(
+                modified);
 
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);

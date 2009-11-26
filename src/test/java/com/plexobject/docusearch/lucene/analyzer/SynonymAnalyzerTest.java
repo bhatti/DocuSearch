@@ -10,7 +10,6 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Document;
@@ -97,9 +96,11 @@ public class SynonymAnalyzerTest {
         }
     }
 
-    @Test(expected = NullPointerException.class)
-    public void testNullMap() {
+    @Test
+    public void testDefaultSynonymMap() {
+        SynonymAnalyzer.defaultSynonymMap = null;
         new SynonymAnalyzer(null);
+        Assert.assertNotNull(SynonymAnalyzer.defaultSynonymMap);
     }
 
     @Test

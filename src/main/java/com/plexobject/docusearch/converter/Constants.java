@@ -5,6 +5,9 @@ public interface Constants {
     public static final String ANALYZE = "analyze";
     public static final String ANALYZER = "analyzer";
     public static final String STORE_IN_INDEX = "storeInIndex";
+    public static final String SORTABLE_NUMBER = "sortableNumber";
+    public static final String SPATIAL_LATITUDE = "spatialLatitude";
+    public static final String SPATIAL_LONGITUDE = "spatialLongitude";
     public static final String TOKENIZE = "tokenize";
     public static final String NAME = "name";
     public static final String BOOST = "boost";
@@ -18,4 +21,7 @@ public interface Constants {
     public static final String OWNER = "owner";
     public static final String FIELD_TO_RETURN = "fieldToReturn";
     public static final String ALL_OWNER = "*";
+    public static final String TIER_PREFIX = "_localTier";
+    public static final String DISTANCE = "distance";
+
 }

@@ -2,6 +2,9 @@ package com.plexobject.docusearch.query;
 
 import java.util.Collection;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+
 public class LookupPolicy extends QueryPolicy {
     private String fieldToReturn;
 
@@ -20,5 +23,39 @@ public class LookupPolicy extends QueryPolicy {
 
     public String getFieldToReturn() {
         return fieldToReturn;
+    }
+
+    /**
+     * @see java.lang.Object#equals(Object)
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof LookupPolicy)) {
+            return false;
+        }
+        LookupPolicy rhs = (LookupPolicy) object;
+        if (!super.equals(object)) {
+            return false;
+        }
+        return new EqualsBuilder()
+                .append(this.fieldToReturn, rhs.fieldToReturn).isEquals();
+    }
+
+    /**
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    /**
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return super.toString()
+                + new ToStringBuilder(this).append("fieldToReturn",
+                        fieldToReturn).toString();
     }
 }

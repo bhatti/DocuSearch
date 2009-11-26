@@ -49,6 +49,7 @@ public class MapToIndexPolicyTest {
             count.put(field.name, count.get(field.name) + 1);
             final int num = Integer.parseInt(field.name.replace("name", ""));
             Assert.assertEquals(num % 2 == 0, field.storeInIndex);
+            Assert.assertEquals(num % 2 == 0, field.sortableNumber);
 
             Assert.assertEquals(num % 2 == 1, field.analyze);
             Assert.assertEquals(num % 2 != 1, field.tokenize);
@@ -75,6 +76,7 @@ public class MapToIndexPolicyTest {
             final Map<String, Object> field = new HashMap<String, Object>();
             field.put(Constants.NAME, "name" + i);
             field.put(Constants.STORE_IN_INDEX, i % 2 == 0);
+            field.put(Constants.SORTABLE_NUMBER, i % 2 == 0);
             field.put(Constants.ANALYZE, i % 2 == 1);
             field.put(Constants.TOKENIZE, i % 2 != 1);
             field.put(Constants.BOOST, "1.1");

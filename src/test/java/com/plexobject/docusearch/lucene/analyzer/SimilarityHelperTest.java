@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import com.plexobject.docusearch.lucene.LuceneUtils;
 
+@SuppressWarnings("unused")
 public class SimilarityHelperTest {
     private static final String INDEX = "delete_me";
     private static final String TEXT = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent augue augue, tempor a placerat vitae, rutrum ut felis. "
@@ -25,41 +26,41 @@ public class SimilarityHelperTest {
 
     @Before
     public void setUp() throws Exception {
-//        new File(LuceneUtils.INDEX_DIR, INDEX
-//                + SimilarityHelper.COMPILED_SPELLING_FILE_EXT).delete();
-//        new File(LuceneUtils.INDEX_DIR, INDEX
-//                + SimilarityHelper.TRAINING_SPELL_CHECKER_EXT).delete();
+        new File(LuceneUtils.INDEX_DIR, INDEX
+                + SimilarityHelper.COMPILED_SPELLING_FILE_EXT).delete();
+        new File(LuceneUtils.INDEX_DIR, INDEX
+                + SimilarityHelper.TRAINING_SPELL_CHECKER_EXT).delete();
     }
 
     @After
     public void tearDown() throws Exception {
-//        new File(LuceneUtils.INDEX_DIR, INDEX
-//                + SimilarityHelper.COMPILED_SPELLING_FILE_EXT).delete();
-//        new File(LuceneUtils.INDEX_DIR, INDEX
-//                + SimilarityHelper.TRAINING_SPELL_CHECKER_EXT).delete();
+        new File(LuceneUtils.INDEX_DIR, INDEX
+                + SimilarityHelper.COMPILED_SPELLING_FILE_EXT).delete();
+        new File(LuceneUtils.INDEX_DIR, INDEX
+                + SimilarityHelper.TRAINING_SPELL_CHECKER_EXT).delete();
     }
 
     @Test
     public final void trainAndVerify() throws IOException {
-        // final SimilarityHelper helper = new SimilarityHelper();
-        // for (int i = 0; i < SimilarityHelper.NGRAM_LENGTH; i++) {
-        // for (String word : WORDS) {
-        // word = word.replace('.', ' ').toLowerCase().trim();
-        // helper.trainSpellChecker(INDEX, word);
-        // }
-        // }
-        // helper.saveTrainingSpellChecker(INDEX);
-        //
-        // for (String word : WORDS) {
-        // if (word.length() > 3) {
-        // String prefix = word.substring(0, 3).replace('.', ' ')
-        // .toLowerCase().trim();
-        //
-        // Assert.assertTrue("Could not find matches for " + prefix,
-        // helper.prefixMatch(INDEX, prefix, 10).size() > 0);
-        // helper.didYouMean(INDEX, prefix);
-        // }
-        // }
+        final SimilarityHelper helper = new SimilarityHelper();
+        for (int i = 0; i < SimilarityHelper.NGRAM_LENGTH; i++) {
+            for (String word : WORDS) {
+                word = word.replace('.', ' ').toLowerCase().trim();
+                helper.trainSpellChecker(INDEX, word);
+            }
+        }
+        helper.saveTrainingSpellChecker(INDEX);
+
+        for (String word : WORDS) {
+            if (word.length() > 3) {
+                String prefix = word.substring(0, 3).replace('.', ' ')
+                        .toLowerCase().trim();
+
+                // Assert.assertTrue("Could not find matches for " + prefix,
+                // helper.prefixMatch(INDEX, prefix, 10).size() > 0);
+                helper.didYouMean(INDEX, prefix);
+            }
+        }
 
     }
 }

@@ -4,12 +4,24 @@
          xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
                              http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
 
-    <display-name>DocuSearch</display-name>
+    <display-name>WeSeed Web Services for Search and Index</display-name>
+    <context-param>
+	<param-name>xorg.apache.activemq.brokerURL</param-name>
+	<param-value>vm://localhost</param-value>
+        <description>The URL of the Message Broker to connect to</description>
+    </context-param>
 
-
+    <context-param>
+        <param-name>xorg.apache.activemq.embeddedBroker</param-name>
+        <param-value>false</param-value>
+        <description>Whether we should include an embedded broker or not</description>
+    </context-param>
     <servlet>
         <servlet-name>Search</servlet-name>
+<!--
         <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
+-->
+        <servlet-class>com.sun.jersey.spi.spring.container.servlet.SpringServlet</servlet-class>
         <init-param>
             <param-name>com.sun.jersey.config.property.packages</param-name>
             <param-value>com.plexobject.docusearch.service.impl</param-value>
@@ -21,11 +33,88 @@
 
     <servlet-mapping>
         <servlet-name>Search</servlet-name>
-        <url-pattern>/svc/*</url-pattern>
+        <url-pattern>/api/*</url-pattern>
     </servlet-mapping>
 
-	<welcome-file-list>
-	  <welcome-file>index.jsp</welcome-file>
-	</welcome-file-list>
+
+
+   <!-- the subscription REST servlet 
+    <servlet>
+        <servlet-name>AjaxServlet</servlet-name>
+        <servlet-class>org.apache.activemq.web.AjaxServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AjaxServlet</servlet-name>
+        <url-pattern>/amq/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>MessageServlet</servlet-name>
+        <servlet-class>org.apache.activemq.web.MessageServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <init-param>
+                <param-name>destinationOptions</param-name>
+                <param-value>consumer.prefetchSize=1</param-value>
+        </init-param> 
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MessageServlet</servlet-name>
+        <url-pattern>/message/*</url-pattern>
+    </servlet-mapping>
+
+
+    <servlet>
+        <servlet-name>QueueBrowseServlet</servlet-name>
+        <servlet-class>org.apache.activemq.web.QueueBrowseServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>QueueBrowseServlet</servlet-name>
+        <url-pattern>/queueBrowse/*</url-pattern>
+    </servlet-mapping>
+
+  <servlet>
+    <servlet-name>SendServlet</servlet-name>
+    <servlet-class>org.apache.activemq.web.MessageServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>SendServlet</servlet-name>
+    <url-pattern>/send/*</url-pattern>
+  </servlet-mapping>
+-->
+
+<!--
+    <filter>
+      <filter-name>session</filter-name>
+      <filter-class>org.apache.activemq.web.SessionFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+      <filter-name>session</filter-name>
+      <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+ <filter>
+    <filter-name>spring-rq</filter-name>
+    <filter-class>org.springframework.web.filter.RequestContextFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>spring-rq</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+  <listener>
+   <listener-class>org.apache.activemq.web.SpringBrokerContextListener</listener-class>
+  </listener>
+-->
+
+  <listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+  </listener>
+
+
+    <welcome-file-list>
+	<welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
 
 </web-app>

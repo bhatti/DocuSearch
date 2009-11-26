@@ -10,12 +10,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.validator.GenericValidator;
+import org.apache.log4j.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-
-import org.apache.commons.validator.GenericValidator;
-import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import com.plexobject.docusearch.Configuration;
 import com.plexobject.docusearch.converter.ConversionException;
@@ -40,6 +40,7 @@ import com.plexobject.docusearch.persistence.PersistenceException;
  * @author Shahzad Bhatti
  * 
  */
+@Component("documentRepository")
 public class DocumentRepositoryCouchdb implements DocumentRepository {
     private static final int MAX_MAX_LIMIT = 1024;
 
@@ -76,25 +77,13 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
      * 
      */
     public DocumentRepositoryCouchdb() {
-        this(DB_URL, DB_USER, DB_PASSWORD);
-    }
-
-    /**
-     * document repository implementation
-     * 
-     * @param url
-     *            - pointing to CouchDB server
-     * @param username
-     *            - optional
-     * @param password
-     *            - optional
-     */
-    public DocumentRepositoryCouchdb(final String url, final String username,
-            final String password) {
-        this(new RestClientImpl(url, username, password));
+        this(new RestClientImpl(DB_URL, DB_USER, DB_PASSWORD));
     }
 
     DocumentRepositoryCouchdb(final RestClient httpClient) {
+        if (httpClient == null) {
+            throw new NullPointerException("httpClient");
+        }
         this.httpClient = httpClient;
     }
 
@@ -192,14 +181,16 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
     /**
      * @param document
      *            - document containing database, id and attributes
+     * @param overwrite
+     *            - overwrites in case of revision mismatch
      * @return - saved document
      * @throws PersistenceException
      *             is thrown when error occurs while saving the database.
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Document saveDocument(final Document document)
-            throws PersistenceException {
+    public Document saveDocument(final Document document,
+            final boolean overwrite) throws PersistenceException {
         if (null == document) {
             throw new NullPointerException("document not specified");
         }
@@ -221,17 +212,21 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
                             body);
                 }
             } catch (RestException e) {
-                if (e.getErrorCode() == RestClient.CLIENT_ERROR_NOT_FOUND) {
+                if (e.getErrorCode() == RestClient.CLIENT_ERROR_PRECONDITION
+                        || e.getErrorCode() == RestClient.CLIENT_ERROR_NOT_FOUND) {
                     createDatabase(document.getDatabase());
-                    return saveDocument(document);
+                    return saveDocument(document, overwrite);
+                } else if (e.getErrorCode() == RestClient.CLIENT_ERROR_CONFLICT
+                        && overwrite) {
+                    final Document oldDoc = getDocument(document.getDatabase(),
+                            document.getId());
+                    return saveDocument(new DocumentBuilder(oldDoc)
+                            .setRevision(oldDoc.getRevision()).build(), false);
+                } else {
+                    throw e;
                 }
-                throw e;
             }
             final Integer rc = response.first();
-            if (rc == RestClient.CLIENT_ERROR_PRECONDITION) {
-                createDatabase(document.getDatabase());
-                return saveDocument(document);
-            }
             if (rc != RestClient.OK_CREATED) {
                 throw new PersistenceException(
                         "failed to save document with error code " + rc);
@@ -312,8 +307,8 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
         }
         req.append("&include_docs=true");
         List<Document> docs = getAllDocuments(req.toString());
-        return new PagedList<Document>(docs, startKey, endKey, limit,
-                docs.size() == limit);
+        return new PagedList<Document>(docs, startKey, endKey, limit, docs
+                .size() == limit);
     }
 
     /**
@@ -414,7 +409,7 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
         } catch (RestException e) {
             if (RestClient.CLIENT_ERROR_NOT_FOUND == e.getErrorCode()) {
                 throw new NotFoundException("Failed to find " + id + " in "
-                        + database);
+                        + database + " on " + httpClient);
             } else {
                 throw new PersistenceException("Failed to get " + id + " from "
                         + database, e, e.getErrorCode());

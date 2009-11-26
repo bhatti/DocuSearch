@@ -3,6 +3,7 @@
  */
 package com.plexobject.docusearch.index.lucene;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import com.plexobject.docusearch.lucene.analyzer.MetaphoneReplacementAnalyzer;
 import com.plexobject.docusearch.lucene.analyzer.PorterAnalyzer;
 import com.plexobject.docusearch.lucene.analyzer.SynonymAnalyzer;
 import com.plexobject.docusearch.persistence.SimpleDocumentsIterator;
+import com.plexobject.docusearch.query.CriteriaBuilder;
 import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.QueryCriteria;
 import com.plexobject.docusearch.query.QueryPolicy;
@@ -52,7 +54,6 @@ public class IndexerImplTest {
     public void setUp() throws Exception {
         BasicConfigurator.configure();
         ram = new RAMDirectory();
-
     }
 
     /**
@@ -74,18 +75,93 @@ public class IndexerImplTest {
     }
 
     @Test
+    public final void testSpatialSearch() throws Exception {
+        Directory directory = LuceneUtils.toFSDirectory(new File("spatial"));
+        final IndexPolicy indexPolicy = new IndexPolicy();
+        indexPolicy.add("name", false, false, false, 0.0F, false, false, false);
+        indexPolicy.add("lat", false, false, false, 0.0F, true, true, false);
+        indexPolicy.add("lng", false, false, false, 0.0F, true, false, true);
+        indexSpatial(indexPolicy, directory);
+
+        final QueryPolicy queryPolicy = new QueryPolicy();
+        queryPolicy.add(DB_NAME + ".name");
+        final QueryImpl query = new QueryImpl(directory, DB_NAME);
+        final QueryCriteria criteria = new CriteriaBuilder().setKeywords(
+                "Restaurant").setLatitude(38.8725000).setLongitude(-77.3829000)
+                .setRadius(8).build();
+        List<SearchDoc> results = query.search(criteria, indexPolicy,
+                queryPolicy, true, 0, 10);
+        Assert.assertEquals("unexpectes results " + results, 0, results.size());
+
+    }
+
+    private void indexSpatial(final IndexPolicy policy,
+            final Directory directory) throws Exception {
+
+        indexSpatial(policy, directory,
+                "McCormick & Schmick's Seafood Restaurant", 38.9579000,
+                -77.3572000);
+        indexSpatial(policy, directory, "Jimmy's Old Town Tavern", 38.9690000,
+                -77.3862000);
+        indexSpatial(policy, directory, "Ned Devine's", 38.9510000, -77.4107000);
+        indexSpatial(policy, directory, "Old Brogue Irish Pub", 38.9955000,
+                -77.2884000);
+        indexSpatial(policy, directory, "Alf Laylah Wa Laylah", 38.8956000,
+                -77.4258000);
+        indexSpatial(policy, directory, "Sully's Restaurant & Supper",
+                38.9003000, -77.4467000);
+        indexSpatial(policy, directory, "TGIFriday", 38.8725000, -77.3829000);
+        indexSpatial(policy, directory, "Potomac Swing Dance Club", 38.9027000,
+                -77.2639000);
+        indexSpatial(policy, directory, "White Tiger Restaurant", 38.9027000,
+                -77.2638000);
+        indexSpatial(policy, directory, "Jammin' Java", 38.9039000, -77.2622000);
+        indexSpatial(policy, directory, "Potomac Swing Dance Club", 38.9027000,
+                -77.2639000);
+        indexSpatial(policy, directory, "WiseAcres Comedy Club", 38.9248000,
+                -77.2344000);
+        indexSpatial(policy, directory, "Glen Echo Spanish Ballroom",
+                38.9691000, -77.1400000);
+        indexSpatial(policy, directory, "Whitlow's on Wilson", 38.8889000,
+                -77.0926000);
+        indexSpatial(policy, directory, "Iota Club and Cafe", 38.8890000,
+                -77.0923000);
+        indexSpatial(policy, directory, "Hilton Washington Embassy Row",
+                38.9103000, -77.0451000);
+        indexSpatial(policy, directory, "HorseFeathers, Bar & Grill",
+                39.01220000000001, -77.3942);
+
+    }
+
+    private int indexSpatial(final IndexPolicy policy, Directory directory,
+            String name, double lat, double lng) throws Exception {
+
+        final Map<String, Object> attrs = new HashMap<String, Object>();
+
+        attrs.put("name", name);
+        attrs.put("lat", lat);
+        attrs.put("lng", lng);
+
+        final Document doc = new DocumentBuilder(DB_NAME).setId(name).putAll(
+                attrs).build();
+
+        final IndexerImpl indexer = new IndexerImpl(directory, DB_NAME);
+        return indexer.index(policy, new SimpleDocumentsIterator(doc), true);
+    }
+
+    @Test
     public void testNonexistingOwner() throws Exception {
         for (QueryUtils.SearchScheme scheme : QueryUtils.SearchScheme.values()) {
             QueryUtils.setSearchScheme(scheme);
             int succeeded = index();
-            final QueryPolicy policy = newQueryPolicy();
+            final QueryPolicy queryPolicy = newQueryPolicy();
 
-            final QueryCriteria criteria = new QueryCriteria();
-            criteria.setKeywords("hat").setOwner("nonexisting");
-            criteria.setRecencyFactor(365, 2);
+            final QueryCriteria criteria = new CriteriaBuilder().setKeywords(
+                    "hat").setOwner("nonexisting").setRecencyFactor(365, 2)
+                    .build();
             final QueryImpl query = new QueryImpl(ram, DB_NAME);
-            List<SearchDoc> results = query.search(criteria, policy, true, 1,
-                    10);
+            List<SearchDoc> results = query.search(criteria, null, queryPolicy,
+                    true, 1, 10);
 
             Assert.assertEquals(2, succeeded);
             Assert.assertEquals("scheme " + scheme + ", unexpectes results "
@@ -96,13 +172,13 @@ public class IndexerImplTest {
     @Test
     public void testIndexWithKeywordsAndRecency() throws Exception {
         int succeeded = index();
-        final QueryPolicy policy = newQueryPolicy();
+        final QueryPolicy queryPolicy = newQueryPolicy();
 
-        final QueryCriteria criteria = new QueryCriteria();
-        criteria.setKeywords("hat").setOwner(OWNER);
-        criteria.setRecencyFactor(365, 2);
+        final QueryCriteria criteria = new CriteriaBuilder().setKeywords("hat")
+                .setOwner(OWNER).setRecencyFactor(365, 2).build();
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        List<SearchDoc> results = query.search(criteria, policy, true, 0, 10);
+        List<SearchDoc> results = query.search(criteria, null, queryPolicy,
+                true, 0, 10);
 
         Assert.assertEquals(2, succeeded);
         Assert.assertEquals(2, results.size());
@@ -111,41 +187,43 @@ public class IndexerImplTest {
     @Test
     public void testIndexQueryWithoutOwner() throws Exception {
         int succeeded = index();
-        final QueryPolicy policy = newQueryPolicy();
+        final QueryPolicy queryPolicy = newQueryPolicy();
 
-        final QueryCriteria criteria = new QueryCriteria();
-        criteria.setKeywords("hat");
-        criteria.setRecencyFactor(365, 2);
+        final QueryCriteria criteria = new CriteriaBuilder().setKeywords("hat")
+                .setRecencyFactor(365, 2).build();
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        List<SearchDoc> results = query.search(criteria, policy, true, 0, 10);
+        List<SearchDoc> results = query.search(criteria, null, queryPolicy,
+                true, 0, 10);
 
         Assert.assertEquals(2, succeeded);
         Assert.assertEquals(2, results.size());
     }
 
-    //@Test
+    @Test
     public void testPartialLookup() throws Exception {
         int succeeded = index();
-        final LookupPolicy policy = newLookupPolicy();
+        final LookupPolicy queryPolicy = newLookupPolicy();
 
-        final QueryCriteria criteria = new QueryCriteria();
-        criteria.setKeywords("ha").setOwner(OWNER);
+        final QueryCriteria criteria = new CriteriaBuilder().setKeywords("ha*")
+                .setOwner(OWNER).build();
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        List<String> results = query.partialLookup(criteria, policy, 10);
+        List<String> results = query.partialLookup(criteria, null, queryPolicy,
+                10);
 
         Assert.assertEquals(2, succeeded);
         Assert.assertEquals(2, results.size());
     }
 
-    //@Test
+    @Test
     public void testPartialLookupWithMiddle() throws Exception {
         index();
-        final LookupPolicy policy = newLookupPolicy();
+        final LookupPolicy queryPolicy = newLookupPolicy();
 
-        final QueryCriteria criteria = new QueryCriteria();
-        criteria.setKeywords("at").setOwner(OWNER);
+        final QueryCriteria criteria = new CriteriaBuilder().setKeywords("at")
+                .setOwner(OWNER).build();
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        List<String> results = query.partialLookup(criteria, policy, 10);
+        List<String> results = query.partialLookup(criteria, null, queryPolicy,
+                10);
 
         Assert.assertEquals(0, results.size());
     }
@@ -153,13 +231,13 @@ public class IndexerImplTest {
     @Test
     public void testExplanation() throws Exception {
         index();
-        final QueryPolicy policy = newQueryPolicy();
+        final QueryPolicy queryPolicy = newQueryPolicy();
 
-        final QueryCriteria criteria = new QueryCriteria();
-        criteria.setKeywords("hat").setOwner(OWNER);
-        criteria.setRecencyFactor(365, 2);
+        final QueryCriteria criteria = new CriteriaBuilder().setKeywords("hat")
+                .setOwner(OWNER).setRecencyFactor(365, 2).build();
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        Collection<String> explanation = query.explain(criteria, policy, 0, 10);
+        Collection<String> explanation = query.explain(criteria, null,
+                queryPolicy, 0, 10);
         Assert.assertEquals(2, explanation.size());
     }
 
@@ -173,10 +251,11 @@ public class IndexerImplTest {
         succeeded += index("2", null, 42, new String[] { "content",
                 "this hat is green" }, null, true);
 
-        final QueryPolicy policy = new QueryPolicy();
-        policy.add(DB_NAME + ".content");
+        final QueryPolicy queryPolicy = new QueryPolicy();
+        queryPolicy.add(DB_NAME + ".content");
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        List<SearchDoc> results = query.moreLikeThis("1", 0, policy, 0, 10);
+        List<SearchDoc> results = query.moreLikeThis("1", 0, null, queryPolicy,
+                0, 10);
 
         Assert.assertEquals(1, results.size());
     }
@@ -184,10 +263,11 @@ public class IndexerImplTest {
     @Test(expected = IllegalArgumentException.class)
     public void testSimilarDocumentsWithBigNumber() throws Exception {
         index();
-        final QueryPolicy policy = newQueryPolicy();
+        final QueryPolicy queryPolicy = newQueryPolicy();
 
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        List<SearchDoc> results = query.moreLikeThis("1", 2, policy, 0, 10);
+        List<SearchDoc> results = query.moreLikeThis("1", 2, null, queryPolicy,
+                0, 10);
 
         Assert.assertEquals(2, results.size());
     }
@@ -222,12 +302,13 @@ public class IndexerImplTest {
                 "name", "title", "tags[name]", "date{year}" }, false);
         Assert.assertEquals(1, succeeded);
 
-        final QueryCriteria criteria = new QueryCriteria();
-        criteria.setKeywords("hat").setOwner(OWNER);
+        final QueryCriteria criteria = new CriteriaBuilder().setKeywords("hat")
+                .setOwner(OWNER).build();
         final QueryImpl query = new QueryImpl(ram, DB_NAME);
-        final QueryPolicy policy = newQueryPolicy();
+        final QueryPolicy queryPolicy = newQueryPolicy();
 
-        List<SearchDoc> results = query.search(criteria, policy, true, 0, 10);
+        List<SearchDoc> results = query.search(criteria, null, queryPolicy,
+                true, 0, 10);
         Assert.assertEquals(2, results.size());
     }
 
@@ -256,16 +337,18 @@ public class IndexerImplTest {
                 id).setRevision("REV").build();
         final IndexPolicy policy = new IndexPolicy();
         policy.setAddToDictionary(true);
-        policy.add(RANK, false, false, false, 0.0F);
+        policy.add(RANK, false, false, false, 0.0F, false, false, false);
         policy.setOwner(owner);
 
         if (indexFields == null) {
             for (int i = 0; i < fields.length - 1; i += 2) {
-                policy.add(fields[i], true, true, true, 0.0F);
+                policy.add(fields[i], true, true, true, 0.0F, false, false,
+                        false);
             }
         } else {
             for (int i = 0; i < indexFields.length; i++) {
-                policy.add(indexFields[i], true, true, true, 0.0F);
+                policy.add(indexFields[i], true, true, true, 0.0F, false,
+                        false, false);
             }
         }
         policy.setScore(score);
@@ -304,13 +387,13 @@ public class IndexerImplTest {
             QueryUtils.setSearchScheme(scheme);
             LuceneUtils.setDefaultAnalyzer(analyzer);
             int succeeded = index();
-            final QueryCriteria criteria = new QueryCriteria();
-            criteria.setScoreQuery().setOwner(OWNER);
+            final QueryCriteria criteria = new CriteriaBuilder()
+                    .setScoreQuery().setOwner(OWNER).build();
             final QueryImpl query = new QueryImpl(ram, DB_NAME);
-            final QueryPolicy policy = newQueryPolicy();
+            final QueryPolicy queryPolicy = newQueryPolicy();
 
-            final List<SearchDoc> results = query.search(criteria, policy,
-                    true, 0, 10);
+            final List<SearchDoc> results = query.search(criteria, null,
+                    queryPolicy, true, 0, 10);
 
             Assert.assertEquals(2, succeeded);
             Assert.assertEquals("unexpectes results " + results.size() + "-->"

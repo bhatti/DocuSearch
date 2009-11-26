@@ -28,7 +28,6 @@ public class JsonToQueryPolicy implements Converter<JSONObject, QueryPolicy> {
         } catch (JSONException e) {
             throw new ConversionException("failed to convert json", e);
         }
-
         return policy;
     }
 

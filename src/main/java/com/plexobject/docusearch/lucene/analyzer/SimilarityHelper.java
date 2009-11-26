@@ -1,15 +1,8 @@
 package com.plexobject.docusearch.lucene.analyzer;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,16 +18,22 @@ import org.apache.lucene.store.FSDirectory;
 import com.plexobject.docusearch.lucene.LuceneUtils;
 
 public class SimilarityHelper {
-    private static final String COMPILED_SPELLING_FILE_EXT = ".csc";
-    @SuppressWarnings("unused")
+    static final String TRAINING_SPELL_CHECKER_EXT = ".tsc";
+    static final String COMPILED_SPELLING_FILE_EXT = ".csc";
     private static final Logger LOGGER = Logger
             .getLogger(SimilarityHelper.class);
+    final static int NGRAM_LENGTH = 7;
     @SuppressWarnings("unused")
     private final static double MATCH_WEIGHT = 0.0;
+    @SuppressWarnings("unused")
     private final static double DELETE_WEIGHT = -5.0;
+    @SuppressWarnings("unused")
     private final static double INSERT_WEIGHT = -5.0;
+    @SuppressWarnings("unused")
     private final static double SUBSTITUTE_WEIGHT = -5.0;
+    @SuppressWarnings("unused")
     private final static double TRANSPOSE_WEIGHT = -5.0;
+
     private final static boolean checkUncompileSpellings = false;
     private volatile Map<String, SpellChecker> scMap = new HashMap<String, SpellChecker>();
     // private volatile Map<String, CompiledSpellChecker> cscMap = new
@@ -45,7 +44,7 @@ public class SimilarityHelper {
     // HashMap<String, TreeSet<String>>();
 
     private static final SimilarityHelper INSTANCE = new SimilarityHelper();
-    private static boolean disableDidYouMean;
+    private static boolean disableDidYouMean = true;
 
     public static SimilarityHelper getInstance() {
         return INSTANCE;
@@ -55,30 +54,28 @@ public class SimilarityHelper {
 
         String similar = null;
         if (!disableDidYouMean) {
-            // try {
-            // similar = getCompiledSpellChecker(index).didYouMean(contents);
-            // } catch (FileNotFoundException e) {
-            // LOGGER.warn("Failed to find compiled spellings for " + index
-            // + " to check against '" + contents + "'--" + e);
-            // } catch (IOException e) {
-            // LOGGER.warn("Failed to get didYouMean " + index + " -- "
-            // + contents, e);
-            // }
-            // try {
-            // if (checkUncompileSpellings && similar == null) {
-            // final String[] matched = getSpellChecker(index)
-            // .suggestSimilar(contents, 1);
-            // if (matched.length > 0) {
-            // similar = matched[0];
-            // }
-            // }
-            // } catch (FileNotFoundException e) {
-            // LOGGER.warn("Failed to find spellings for " + index
-            // + " to check against '" + contents + "'--" + e);
-            // } catch (IOException e) {
-            // LOGGER.warn("Failed to get didYouMean " + index + " -- "
-            // + contents, e);
-            // }
+            try {
+                // similar =
+                // getCompiledSpellChecker(index).didYouMean(contents);
+            } catch (Exception e) {
+                LOGGER.warn("Failed to get didYouMean " + index + " -- "
+                        + contents, e);
+            }
+            try {
+                if (checkUncompileSpellings && similar == null) {
+                    final String[] matched = getSpellChecker(index)
+                            .suggestSimilar(contents, 1);
+                    if (matched.length > 0) {
+                        similar = matched[0];
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                LOGGER.warn("Failed to find spellings for " + index
+                        + " to check against '" + contents + "'--" + e);
+            } catch (IOException e) {
+                LOGGER.warn("Failed to get didYouMean " + index + " -- "
+                        + contents, e);
+            }
         }
         if (contents.equals(similar)) {
             similar = null;
@@ -118,14 +115,11 @@ public class SimilarityHelper {
     }
 
     public void trainSpellChecker(final String index, final String contents) {
-        // try {
-        // getTrainSpellChecker(index).train(contents);
-        // } catch (FileNotFoundException e) {
-        // LOGGER.warn("Spell checker file not found for  " + index + " -- "
-        // + contents);
-        // } catch (IOException e) {
-        // LOGGER.warn("Failed to traing " + index + " -- " + contents, e);
-        // }
+        try {
+            // getTrainSpellChecker(index).train(contents);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to traing " + index + " -- " + contents, e);
+        }
     }
 
     public void saveTrainingSpellChecker(final String index) throws IOException {
@@ -156,20 +150,20 @@ public class SimilarityHelper {
 
     private TreeSet<String> getCompiledTokenSet(final String index)
             throws IOException {
-        synchronized (index) {
-            // TreeSet<String> set = tokenSets.get(index);
-            // if (set == null) {
-            // Set<String> tokenSet = getCompiledSpellChecker(index)
-            // .tokenSet();
-            // if (tokenSet instanceof TreeSet) {
-            // set = (TreeSet<String>) tokenSet;
-            // } else {
-            // set = new TreeSet<String>(tokenSet);
-            // }
-            // tokenSets.put(index, set);
-            // }
-            // return set;
-        }
+        // synchronized (index) {
+        // TreeSet<String> set = tokenSets.get(index);
+        // if (set == null) {
+        // Set<String> tokenSet = getCompiledSpellChecker(index)
+        // .tokenSet();
+        // if (tokenSet instanceof TreeSet) {
+        // set = (TreeSet<String>) tokenSet;
+        // } else {
+        // set = new TreeSet<String>(tokenSet);
+        // }
+        // tokenSets.put(index, set);
+        // }
+        // return set;
+        // }
         return null;
     }
 

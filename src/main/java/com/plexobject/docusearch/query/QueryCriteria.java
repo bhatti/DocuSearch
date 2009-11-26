@@ -1,16 +1,11 @@
 package com.plexobject.docusearch.query;
 
-
-import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.lucene.document.DateTools;
-
-import com.plexobject.docusearch.converter.Constants;
 
 public class QueryCriteria {
     public static final String KEYWORDS = "keywords";
@@ -19,37 +14,17 @@ public class QueryCriteria {
     public static final String INDEX_DATE_BEGIN = "indexDateBegin";
     public static final String INDEX_DATE_END = "indexDateEnd";
     public static final String SCORE_QUERY = "scoreQuery";
+    public static final String LATITUDE = "latitude";
+    public static final String LONGITUDE = "longitude";
+    public static final String ZIPCODE = "zipCode";
+    public static final String RADIUS = "radius";
     public static final String OWNER = "owner";
+    public static final String FUZZY_SEARCH_FOR_NO_RESULTS = "fuzzySearchForNoResults";
 
-    private final Map<String, String> options = new TreeMap<String, String>();
+    final Map<String, String> options = new TreeMap<String, String>();
 
-    public QueryCriteria() {
-        setOwner(Constants.ALL_OWNER);
-    }
-
-    public QueryCriteria setScoreQuery() {
-        options.put(SCORE_QUERY, String.valueOf(Boolean.TRUE));
-        return this;
-    }
-
-    public QueryCriteria setKeywords(final String keywords) {
-        options.put(KEYWORDS, keywords.toLowerCase());
-        return this;
-    }
-
-    public QueryCriteria setRecencyFactor(final int maxDays,
-            final double multiplier) {
-        options.put(RECENCY_MAX_DAYS, String.valueOf(maxDays));
-        options.put(RECENCY_MULTIPLIER, String.valueOf(multiplier));
-        return this;
-    }
-
-    public QueryCriteria setIndexDateRange(final Date begin, final Date end) {
-        options.put(INDEX_DATE_BEGIN, DateTools.dateToString(begin,
-                DateTools.Resolution.MILLISECOND));
-        options.put(INDEX_DATE_END, DateTools.dateToString(end,
-                DateTools.Resolution.MILLISECOND));
-        return this;
+    QueryCriteria(final Map<String, String> options) {
+        this.options.putAll(options);
     }
 
     public boolean isScoreQuery() {
@@ -62,11 +37,6 @@ public class QueryCriteria {
 
     public boolean hasOwner() {
         return options.get(OWNER) != null;
-    }
-
-    public QueryCriteria setOwner(final String owner) {
-        this.options.put(OWNER, owner == null ? Constants.ALL_OWNER : owner);
-        return this;
     }
 
     public String getKeywords() {
@@ -104,9 +74,51 @@ public class QueryCriteria {
         return options.get(INDEX_DATE_END);
     }
 
+    public double getLatitude() {
+        return getDouble(LATITUDE);
+    }
+
+    public boolean hasLatitude() {
+        return options.get(LATITUDE) != null;
+    }
+
+    public double getLongitude() {
+        return getDouble(LONGITUDE);
+    }
+
+    public boolean hasLongitude() {
+        return options.get(LONGITUDE) != null;
+    }
+
+    public String getZipcode() {
+        return options.get(ZIPCODE);
+    }
+
+    public boolean hasZipcode() {
+        return options.get(ZIPCODE) != null;
+    }
+
     private int getInteger(final String key) {
         final String value = options.get(key);
         return value == null ? 0 : Integer.parseInt(value);
+    }
+
+    public double getRadius() {
+        return getDouble(RADIUS);
+    }
+
+    public boolean hasRadius() {
+        return options.get(RADIUS) != null;
+    }
+
+    public boolean isSpatialQuery() {
+        return ((hasLongitude() && hasLatitude()) || hasZipcode())
+                && hasRadius();
+    }
+
+    public boolean isFuzzySearchForNoResults() {
+        return options.get(FUZZY_SEARCH_FOR_NO_RESULTS) == String
+                .valueOf(Boolean.TRUE);
     }
 
     private double getDouble(final String key) {
@@ -143,4 +155,5 @@ public class QueryCriteria {
         return new ToStringBuilder(this).append("options", this.options)
                 .toString();
     }
+
 }

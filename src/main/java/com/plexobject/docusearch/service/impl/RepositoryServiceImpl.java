@@ -15,6 +15,10 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.validator.GenericValidator;
 import org.apache.log4j.Logger;
 import org.codehaus.jettison.json.JSONObject;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import com.plexobject.docusearch.converter.Converters;
 import com.plexobject.docusearch.domain.Document;
@@ -24,22 +28,22 @@ import com.plexobject.docusearch.jmx.JMXRegistrar;
 import com.plexobject.docusearch.jmx.impl.ServiceJMXBeanImpl;
 import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
-import com.plexobject.docusearch.persistence.RepositoryFactory;
 import com.plexobject.docusearch.service.RepositoryService;
+import com.sun.jersey.spi.inject.Inject;
 
 @Path("/storage")
-public class RepositoryServiceImpl implements RepositoryService {
+@Component("storageService")
+@Scope("singleton")
+public class RepositoryServiceImpl implements RepositoryService,
+        InitializingBean {
     private static final Logger LOGGER = Logger
             .getLogger(RepositoryServiceImpl.class);
-    private final DocumentRepository docRepository;
+    @Autowired
+    @Inject
+    DocumentRepository documentRepository;
     private final ServiceJMXBeanImpl mbean;
 
     public RepositoryServiceImpl() {
-        this(new RepositoryFactory());
-    }
-
-    public RepositoryServiceImpl(final RepositoryFactory repositoryFactory) {
-        this.docRepository = repositoryFactory.getDocumentRepository();
         mbean = JMXRegistrar.getInstance().register(getClass());
 
     }
@@ -72,7 +76,7 @@ public class RepositoryServiceImpl implements RepositoryService {
         }
         try {
 
-            docRepository.deleteDocument(database, id, version);
+            documentRepository.deleteDocument(database, id, version);
             mbean.incrementRequests();
 
             return Response.ok().build();
@@ -119,7 +123,7 @@ public class RepositoryServiceImpl implements RepositoryService {
 
         try {
 
-            Document doc = docRepository.getDocument(database, id);
+            Document doc = documentRepository.getDocument(database, id);
             JSONObject jsonDoc = Converters.getInstance().getConverter(
                     Object.class, JSONObject.class).convert(doc);
             mbean.incrementRequests();
@@ -174,7 +178,8 @@ public class RepositoryServiceImpl implements RepositoryService {
                     .getInstance().getConverter(JSONObject.class,
                             Document.class).convert(jsonReq)).setDatabase(
                     database).build();
-            final Document savedDoc = docRepository.saveDocument(reqDoc);
+            final Document savedDoc = documentRepository.saveDocument(reqDoc,
+                    false);
             final JSONObject jsonRes = Converters.getInstance().getConverter(
                     Object.class, JSONObject.class).convert(savedDoc);
             mbean.incrementRequests();
@@ -233,7 +238,8 @@ public class RepositoryServiceImpl implements RepositoryService {
                     .getInstance().getConverter(JSONObject.class,
                             Document.class).convert(jsonReq)).setDatabase(
                     database).setId(id).setRevision(version).build();
-            final Document savedDoc = docRepository.saveDocument(reqDoc);
+            final Document savedDoc = documentRepository.saveDocument(reqDoc,
+                    false);
             final JSONObject jsonRes = Converters.getInstance().getConverter(
                     Object.class, JSONObject.class).convert(savedDoc);
             mbean.incrementRequests();
@@ -259,6 +265,28 @@ public class RepositoryServiceImpl implements RepositoryService {
             return Response.status(RestClient.SERVER_INTERNAL_ERROR).type(
                     "text/plain").entity("failed to save " + body + "\n")
                     .build();
+        }
+    }
+
+    /**
+     * @return the documentRepository
+     */
+    public DocumentRepository getDocumentRepository() {
+        return documentRepository;
+    }
+
+    /**
+     * @param documentRepository
+     *            the documentRepository to set
+     */
+    public void setDocumentRepository(DocumentRepository documentRepository) {
+        this.documentRepository = documentRepository;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (documentRepository == null) {
+            throw new IllegalStateException("documentRepository not set");
         }
     }
 }

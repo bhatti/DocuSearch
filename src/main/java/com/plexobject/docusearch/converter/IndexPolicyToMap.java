@@ -36,6 +36,9 @@ public class IndexPolicyToMap implements
 
 				mapField.put(Constants.NAME, field.name);
 				mapField.put(Constants.STORE_IN_INDEX, field.storeInIndex);
+				mapField.put(Constants.SORTABLE_NUMBER, field.sortableNumber);
+				mapField.put(Constants.SPATIAL_LATITUDE, field.spatialLatitude);
+				mapField.put(Constants.SPATIAL_LONGITUDE, field.spatialLongitude);
 				mapField.put(Constants.TOKENIZE, field.tokenize);
 				mapField.put(Constants.ANALYZE, field.analyze);
 				mapField.put(Constants.BOOST, field.boost);

@@ -3,6 +3,8 @@ package com.plexobject.docusearch.query;
 import java.util.Collection;
 import java.util.List;
 
+import com.plexobject.docusearch.index.IndexPolicy;
+
 /**
  * This interface searches index for the given keywords
  * 
@@ -14,7 +16,9 @@ public interface Query {
      * 
      * @param criteria
      *            - search criteria to search
-     * @param policy
+     * @param indexPolicy
+     *            - index policy
+     * @param queryPolicy
      *            - query policy
      * @param includeSuggestions
      *            - whether to include suggestions
@@ -25,21 +29,24 @@ public interface Query {
      * @return collection of maps, where each map stores information about the
      *         document fields.
      */
-    SearchDocList search(QueryCriteria criteria, QueryPolicy policy,
-            boolean includeSuggestions, int start, int limit);
+    SearchDocList search(QueryCriteria criteria, IndexPolicy indexPolicy,
+            QueryPolicy queryPolicy, boolean includeSuggestions, int start,
+            int limit);
 
     /**
      * 
      * @param criteria
      *            - criteria with partial keywords for lookup
-     * @param policy
+     * @param indexPolicy
+     *            - index policy
+     * @param queryPolicy
      *            - query policy
      * @param limit
      *            - max # of results
      * @return List of matches document fields.
      */
-    List<String> partialLookup(QueryCriteria criteria, LookupPolicy policy,
-            int limit);
+    List<String> partialLookup(QueryCriteria criteria, IndexPolicy indexPolicy,
+            LookupPolicy policy, int limit);
 
     /**
      * 
@@ -47,7 +54,9 @@ public interface Query {
      *            - external document id to compare and dedup
      * @param luceneId
      *            - internal document id (Lucene) to compare
-     * @param policy
+     * @param indexPolicy
+     *            - index policy
+     * @param queryPolicy
      *            - query policy
      * @param start
      *            - start index for pagination
@@ -57,13 +66,16 @@ public interface Query {
      *         document fields.
      */
     SearchDocList moreLikeThis(String externalId, int luceneId,
-            QueryPolicy policy, int start, int limit);
+            IndexPolicy indexPolicy, QueryPolicy queryPolicy, int start,
+            int limit);
 
     /**
      * 
      * @param criteria
      *            - search criteria to search
-     * @param policy
+     * @param indexPolicy
+     *            - index policy
+     * @param queryPolicy
      *            - query policy
      * @param start
      *            - start index for pagination
@@ -71,8 +83,8 @@ public interface Query {
      *            - max # of results
      * @return collection of explanations for query results.
      */
-    Collection<String> explain(QueryCriteria criteria, QueryPolicy policy,
-            int start, int limit);
+    Collection<String> explain(QueryCriteria criteria, IndexPolicy indexPolicy,
+            QueryPolicy queryPolicy, int start, int limit);
 
     /**
      * @param policy
