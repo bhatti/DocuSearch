@@ -2,7 +2,7 @@ package com.plexobject.docusearch.converter;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.junit.After;
@@ -40,7 +40,7 @@ public class MapToIndexPolicyTest {
         Assert.assertTrue("failed to find dictionary in " + map, policy
                 .isAddToDictionary());
 
-        Map<String, Integer> count = new HashMap<String, Integer>();
+        Map<String, Integer> count = new TreeMap<String, Integer>();
 
         for (int i = 0; i < 10; i++) {
             count.put("name" + i, new Integer(0));
@@ -49,7 +49,7 @@ public class MapToIndexPolicyTest {
             count.put(field.name, count.get(field.name) + 1);
             final int num = Integer.parseInt(field.name.replace("name", ""));
             Assert.assertEquals(num % 2 == 0, field.storeInIndex);
-            Assert.assertEquals(num % 2 == 0, field.sortableNumber);
+            Assert.assertEquals(num % 2 == 0, field.htmlToText);
 
             Assert.assertEquals(num % 2 == 1, field.analyze);
             Assert.assertEquals(num % 2 != 1, field.tokenize);
@@ -65,7 +65,7 @@ public class MapToIndexPolicyTest {
     }
 
     private static Map<String, Object> newIndexPolicyMap() {
-        final Map<String, Object> map = new HashMap<String, Object>();
+        final Map<String, Object> map = new TreeMap<String, Object>();
         map.put(Constants.SCORE, 10);
         map.put(Constants.BOOST, 20.5);
         map.put(Constants.ANALYZER, "std");
@@ -73,10 +73,10 @@ public class MapToIndexPolicyTest {
         map.put(Constants.ADD_TO_DICTIONARY, Boolean.TRUE);
         final Collection<Map<String, Object>> fields = new ArrayList<Map<String, Object>>();
         for (int i = 0; i < 10; i++) {
-            final Map<String, Object> field = new HashMap<String, Object>();
+            final Map<String, Object> field = new TreeMap<String, Object>();
             field.put(Constants.NAME, "name" + i);
             field.put(Constants.STORE_IN_INDEX, i % 2 == 0);
-            field.put(Constants.SORTABLE_NUMBER, i % 2 == 0);
+            field.put(Constants.HTML_TO_TEXT, i % 2 == 0);
             field.put(Constants.ANALYZE, i % 2 == 1);
             field.put(Constants.TOKENIZE, i % 2 != 1);
             field.put(Constants.BOOST, "1.1");

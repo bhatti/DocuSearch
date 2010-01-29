@@ -3,6 +3,7 @@ package com.plexobject.docusearch.http.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.net.SocketException;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
@@ -22,6 +23,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.validator.GenericValidator;
 import org.apache.log4j.Logger;
 
+import com.plexobject.docusearch.Configuration;
 import com.plexobject.docusearch.domain.Tuple;
 import com.plexobject.docusearch.http.RestClient;
 import com.plexobject.docusearch.http.RestException;
@@ -35,6 +37,8 @@ import com.plexobject.docusearch.metrics.Timer;
  */
 public class RestClientImpl implements RestClient {
     private static final Logger LOGGER = Logger.getLogger(RestClientImpl.class);
+    private static final int CONNECTION_TIMEOUT_MILLIS = Configuration
+            .getInstance().getInteger("rest.connection.timeout.millis", 10000);
     private HttpClient httpClient = new HttpClient();
     private final String url;
 
@@ -50,6 +54,12 @@ public class RestClientImpl implements RestClient {
 
         this.url = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
         httpClient.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
+        httpClient.getParams().setSoTimeout(CONNECTION_TIMEOUT_MILLIS);
+        httpClient.getParams().setParameter("http.socket.timeout",
+                new Integer(CONNECTION_TIMEOUT_MILLIS));
+        httpClient.getParams().setParameter("http.connection.timeout",
+                new Integer(CONNECTION_TIMEOUT_MILLIS));
+
         if (!GenericValidator.isBlankOrNull(username)
                 && !GenericValidator.isBlankOrNull(password)) {
             httpClient.getParams().setAuthenticationPreemptive(true);
@@ -91,6 +101,8 @@ public class RestClientImpl implements RestClient {
 
         try {
             return httpClient.executeMethod(method);
+        } catch (SocketException e) {
+            throw new IOException("Failed to connet to " + url(path), e);
         } finally {
             method.releaseConnection();
         }
@@ -115,6 +127,11 @@ public class RestClientImpl implements RestClient {
     }
 
     private Tuple execute(final HttpMethodBase method) throws IOException {
+        return execute(method, 0);
+    }
+
+    private Tuple execute(final HttpMethodBase method, int numTries)
+            throws IOException {
         final Timer timer = Metric.newTimer("RestClientImpl.execute");
         try {
             final int sc = httpClient.executeMethod(method);
@@ -130,6 +147,39 @@ public class RestClientImpl implements RestClient {
             } finally {
                 in.close();
             }
+        } catch (NullPointerException e) {
+            if (numTries < 3) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ie) {
+                    Thread.interrupted();
+                }
+                return execute(method, numTries + 1);
+            }
+            throw new IOException("Failed to connet to " + url + " [" + method
+                    + "]", e);
+        } catch (SocketException e) {
+            if (numTries < 3) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ie) {
+                    Thread.interrupted();
+                }
+                return execute(method, numTries + 1);
+            }
+
+            throw new IOException("Failed to connet to " + url + " [" + method
+                    + "]", e);
+        } catch (IOException e) {
+            if (numTries < 3) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ie) {
+                    Thread.interrupted();
+                }
+                return execute(method, numTries + 1);
+            }
+            throw e;
         } finally {
             method.releaseConnection();
             timer.stop();

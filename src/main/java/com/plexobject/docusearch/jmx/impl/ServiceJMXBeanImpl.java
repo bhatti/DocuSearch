@@ -12,8 +12,13 @@ import javax.management.MBeanNotificationInfo;
 import javax.management.Notification;
 import javax.management.NotificationBroadcasterSupport;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+
 import com.plexobject.docusearch.jmx.ServiceJMXBean;
 import com.plexobject.docusearch.metrics.Metric;
+import com.plexobject.docusearch.util.TimeUtils;
 
 /**
  * @author Shahzad Bhatti
@@ -68,7 +73,7 @@ public class ServiceJMXBeanImpl extends NotificationBroadcasterSupport
     public void setProperty(final String name, final String value) {
         final String oldValue = properties.put(name, value);
         final Notification notification = new AttributeChangeNotification(this,
-                sequenceNumber.incrementAndGet(), System.currentTimeMillis(),
+                sequenceNumber.incrementAndGet(), TimeUtils.getCurrentTimeMillis(),
                 name + " changed", name, "String", oldValue, value);
         sendNotification(notification);
     }
@@ -106,7 +111,7 @@ public class ServiceJMXBeanImpl extends NotificationBroadcasterSupport
     public void incrementError() {
         final long oldErrors = totalErrors.getAndIncrement();
         final Notification notification = new AttributeChangeNotification(this,
-                sequenceNumber.incrementAndGet(), System.currentTimeMillis(),
+                sequenceNumber.incrementAndGet(), TimeUtils.getCurrentTimeMillis(),
                 "Errors changed", "Errors", "long", oldErrors, oldErrors + 1);
         sendNotification(notification);
     }
@@ -124,7 +129,7 @@ public class ServiceJMXBeanImpl extends NotificationBroadcasterSupport
     public void incrementRequests() {
         final long oldRequests = totalRequests.getAndIncrement();
         final Notification notification = new AttributeChangeNotification(this,
-                sequenceNumber.incrementAndGet(), System.currentTimeMillis(),
+                sequenceNumber.incrementAndGet(), TimeUtils.getCurrentTimeMillis(),
                 "Requests changed", "Requests", "long", oldRequests,
                 oldRequests + 1);
         sendNotification(notification);
@@ -153,4 +158,38 @@ public class ServiceJMXBeanImpl extends NotificationBroadcasterSupport
         this.state = state;
     }
 
+    /**
+     * @see java.lang.Object#equals(Object)
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof ServiceJMXBeanImpl)) {
+            return false;
+        }
+        ServiceJMXBeanImpl rhs = (ServiceJMXBeanImpl) object;
+        return new EqualsBuilder().append(this.serviceName, rhs.serviceName)
+                .isEquals();
+    }
+
+    /**
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(786529047, 1924536713).append(
+                this.serviceName).toHashCode();
+    }
+
+    /**
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("serviceName", this.serviceName).append("totalErrors",
+                        this.totalErrors).append("totalRequests",
+                        this.totalRequests).append("totalRequests",
+                        this.totalRequests).append("state", this.state).append(
+                        "properties", this.properties).toString();
+    }
 }

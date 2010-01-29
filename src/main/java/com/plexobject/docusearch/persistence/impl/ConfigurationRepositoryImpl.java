@@ -1,12 +1,14 @@
 package com.plexobject.docusearch.persistence.impl;
 
-import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.plexobject.docusearch.Configuration;
+import com.plexobject.docusearch.cache.CacheLoader;
+import com.plexobject.docusearch.cache.CachedMap;
 import com.plexobject.docusearch.converter.Converters;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
@@ -19,14 +21,38 @@ import com.plexobject.docusearch.query.QueryPolicy;
 import com.sun.jersey.spi.inject.Inject;
 
 @Component("configRepository")
-public class ConfigurationRepositoryImpl implements ConfigurationRepository {
+public class ConfigurationRepositoryImpl implements ConfigurationRepository,
+        InitializingBean {
     private static final String LOOKUP_POLICY = "lookup_policy_for_";
     private static final String QUERY_POLICY = "query_policy_for_";
     private static final String INDEX_POLICY = "index_policy_for_";
+    private static final long INDEFINITE = 0;
+
     private final String database;
-    private Map<String, QueryPolicy> cachedQueryPolicies = new HashMap<String, QueryPolicy>();
-    private Map<String, IndexPolicy> cachedIndexPolicies = new HashMap<String, IndexPolicy>();
-    private Map<String, LookupPolicy> cachedLookupPolicies = new HashMap<String, LookupPolicy>();
+    private Map<String, QueryPolicy> cachedQueryPolicies = new CachedMap<String, QueryPolicy>(
+            INDEFINITE, 24, new CacheLoader<String, QueryPolicy>() {
+                @Override
+                public QueryPolicy get(String id) {
+                    return fetchQueryPolicy(id);
+
+                }
+            }, null);
+    private Map<String, IndexPolicy> cachedIndexPolicies = new CachedMap<String, IndexPolicy>(
+            INDEFINITE, 24, new CacheLoader<String, IndexPolicy>() {
+                @Override
+                public IndexPolicy get(String id) {
+                    return fetchIndexPolicy(id);
+
+                }
+            }, null);
+    private Map<String, LookupPolicy> cachedLookupPolicies = new CachedMap<String, LookupPolicy>(
+            INDEFINITE, 24, new CacheLoader<String, LookupPolicy>() {
+                @Override
+                public LookupPolicy get(String id) {
+                    return fetchLookupPolicy(id);
+
+                }
+            }, null);
 
     @Autowired
     @Inject
@@ -46,13 +72,19 @@ public class ConfigurationRepositoryImpl implements ConfigurationRepository {
         synchronized (cachedIndexPolicies) {
             policy = cachedIndexPolicies.get(id);
             if (policy == null) {
-                Document doc = documentRepository.getDocument(database,
-                        toIndexPolicyId(id));
-                policy = Converters.getInstance().getConverter(Map.class,
-                        IndexPolicy.class).convert(doc);
+                policy = fetchIndexPolicy(id);
                 cachedIndexPolicies.put(id, policy);
             }
         }
+        return policy;
+    }
+
+    private IndexPolicy fetchIndexPolicy(String id) {
+        IndexPolicy policy;
+        Document doc = documentRepository.getDocument(database,
+                toIndexPolicyId(id));
+        policy = Converters.getInstance().getConverter(Map.class,
+                IndexPolicy.class).convert(doc);
         return policy;
     }
 
@@ -62,13 +94,19 @@ public class ConfigurationRepositoryImpl implements ConfigurationRepository {
         synchronized (cachedQueryPolicies) {
             policy = cachedQueryPolicies.get(id);
             if (policy == null) {
-                Document doc = documentRepository.getDocument(database,
-                        toQueryPolicyId(id));
-                policy = Converters.getInstance().getConverter(Map.class,
-                        QueryPolicy.class).convert(doc);
+                policy = fetchQueryPolicy(id);
                 cachedQueryPolicies.put(id, policy);
             }
         }
+        return policy;
+    }
+
+    private QueryPolicy fetchQueryPolicy(String id) {
+        QueryPolicy policy;
+        Document doc = documentRepository.getDocument(database,
+                toQueryPolicyId(id));
+        policy = Converters.getInstance().getConverter(Map.class,
+                QueryPolicy.class).convert(doc);
         return policy;
     }
 
@@ -79,14 +117,19 @@ public class ConfigurationRepositoryImpl implements ConfigurationRepository {
         synchronized (cachedLookupPolicies) {
             policy = cachedLookupPolicies.get(id);
             if (policy == null) {
-
-                Document doc = documentRepository.getDocument(database,
-                        toLookupPolicyId(id));
-                policy = Converters.getInstance().getConverter(Map.class,
-                        LookupPolicy.class).convert(doc);
+                policy = fetchLookupPolicy(id);
                 cachedLookupPolicies.put(id, policy);
             }
         }
+        return policy;
+    }
+
+    private LookupPolicy fetchLookupPolicy(String id) {
+        LookupPolicy policy;
+        Document doc = documentRepository.getDocument(database,
+                toLookupPolicyId(id));
+        policy = Converters.getInstance().getConverter(Map.class,
+                LookupPolicy.class).convert(doc);
         return policy;
     }
 
@@ -148,7 +191,7 @@ public class ConfigurationRepositoryImpl implements ConfigurationRepository {
             cachedLookupPolicies.put(id, policy);
         }
 
-        Map map = Converters.getInstance().getConverter(QueryPolicy.class,
+        Map map = Converters.getInstance().getConverter(LookupPolicy.class,
                 Map.class).convert(policy);
         String rev = null;
         try {
@@ -186,14 +229,21 @@ public class ConfigurationRepositoryImpl implements ConfigurationRepository {
     }
 
     private static String toIndexPolicyId(final String id) {
-        return INDEX_POLICY + id;
+        return id.startsWith(INDEX_POLICY) ? id : INDEX_POLICY + id;
     }
 
     private static String toQueryPolicyId(final String id) {
-        return QUERY_POLICY + id;
+        return id.startsWith(QUERY_POLICY) ? id : QUERY_POLICY + id;
     }
 
     private static String toLookupPolicyId(final String id) {
-        return LOOKUP_POLICY + id;
+        return id.startsWith(LOOKUP_POLICY) ? id : LOOKUP_POLICY + id;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (documentRepository == null) {
+            throw new RuntimeException("documentRepository is not set");
+        }
     }
 }

@@ -1,6 +1,8 @@
 package com.plexobject.docusearch.jmx;
 
 import java.lang.management.ManagementFactory;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +50,10 @@ public class JMXRegistrar {
     public ServiceJMXBeanImpl register(final Class<?> serviceClass) {
         return register(serviceClass.getPackage().getName() + ":type="
                 + serviceClass.getSimpleName());
+    }
+
+    public Collection<ServiceJMXBeanImpl> getServiceJMXBeans() {
+        return Collections.unmodifiableCollection(mbeans.values());
     }
 
     /**

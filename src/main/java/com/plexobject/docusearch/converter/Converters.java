@@ -1,6 +1,6 @@
 package com.plexobject.docusearch.converter;
 
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -21,7 +21,7 @@ import com.plexobject.docusearch.query.RankedTerm;
  * 
  */
 public final class Converters {
-    private static final class Key {
+    private static final class Key implements Comparable<Key> {
         private final Class<?> from;
         private final Class<?> to;
 
@@ -60,9 +60,16 @@ public final class Converters {
             return new ToStringBuilder(this).append("from", this.from).append(
                     "to", this.to).toString();
         }
+
+        @Override
+        public int compareTo(Key rhs) {
+            String thisKey = this.from.toString() + ":" + this.to.toString();
+            String rhsKey = rhs.from.toString() + ":" + rhs.to.toString();
+            return thisKey.compareTo(rhsKey);
+        }
     }
 
-    private final Map<Key, Converter<?, ?>> converters = new HashMap<Key, Converter<?, ?>>();
+    private final Map<Key, Converter<?, ?>> converters = new TreeMap<Key, Converter<?, ?>>();
     private static Converters instance = new Converters();
 
     private Converters() {
@@ -93,7 +100,6 @@ public final class Converters {
         register(JSONObject.class, LookupPolicy.class, new JsonToLookupPolicy());
         register(LookupPolicy.class, Map.class, new LookupPolicyToMap());
         register(Map.class, LookupPolicy.class, new MapToLookupPolicy());
-
         //
         register(RankedTerm.class, JSONObject.class, new RankedTermToJson());
         register(JSONObject.class, RankedTerm.class, new JsonToRankedTerm());

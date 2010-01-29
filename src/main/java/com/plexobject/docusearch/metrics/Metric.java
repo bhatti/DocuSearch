@@ -3,6 +3,8 @@
  */
 package com.plexobject.docusearch.metrics;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,10 +20,13 @@ import org.apache.commons.validator.GenericValidator;
  */
 public class Metric {
     private final String name;
-    private AtomicLong totalDuration;
-    private AtomicLong totalCalls;
+    private final AtomicLong totalDuration;
+    private final AtomicLong totalCalls;
+    private final AtomicLong skipCalls;
+
     private static final long ONE_MILLI_SEC = 1000000L;
     private static final long ONE_SEC = ONE_MILLI_SEC * 1000;
+    static int MINIMUM_METRICS = 2; // skip first two requests
 
     private static final Map<String, Metric> METRICS = new ConcurrentHashMap<String, Metric>();
 
@@ -30,7 +35,12 @@ public class Metric {
     Metric(final String name) {
         this.name = name;
         this.totalCalls = new AtomicLong();
+        this.skipCalls = new AtomicLong();
         this.totalDuration = new AtomicLong();
+    }
+
+    public static Collection<Metric> getMetrics() {
+        return Collections.unmodifiableCollection(METRICS.values());
     }
 
     /**
@@ -120,8 +130,10 @@ public class Metric {
     }
 
     void finishedTimer(final int totalCalls, final long totalDuration) {
-        this.totalCalls.addAndGet(totalCalls);
-        this.totalDuration.addAndGet(totalDuration);
+        if (skipCalls.getAndIncrement() > MINIMUM_METRICS) {
+            this.totalCalls.addAndGet(totalCalls);
+            this.totalDuration.addAndGet(totalDuration);
+        }
     }
 
     @Override

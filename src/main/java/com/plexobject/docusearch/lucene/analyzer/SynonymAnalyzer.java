@@ -7,10 +7,12 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.LowerCaseFilter;
+import org.apache.lucene.analysis.PorterStemFilter;
 import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.util.Version;
 import org.apache.solr.analysis.SynonymFilter;
 import org.apache.solr.analysis.SynonymMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,7 @@ import com.sun.jersey.spi.inject.Inject;
 
 @Component("synonymAnalyzer")
 public class SynonymAnalyzer extends Analyzer {
+    private static final boolean PORTER = false;
     private static Logger LOGGER = Logger.getLogger(SynonymAnalyzer.class);
     private static final String SYNONYMS_DATA = "synonyms.properties";
     final SynonymMap synonymMap;
@@ -45,11 +48,16 @@ public class SynonymAnalyzer extends Analyzer {
         this.synonymMap = synonymMap;
     }
 
-    @SuppressWarnings("deprecation")
     public TokenStream tokenStream(String fieldName, Reader reader) {
-        TokenStream result = new SynonymFilter(new StopFilter(true,
-                new LowerCaseFilter(new StandardFilter(new StandardTokenizer(
-                        reader))), LuceneUtils.STOP_WORDS_SET), synonymMap);
+        TokenStream result = new SynonymFilter(
+                new StopFilter(true,
+                        new LowerCaseFilter(new StandardFilter(
+                                new StandardTokenizer(Version.LUCENE_CURRENT,
+                                        reader))), LuceneUtils.STOP_WORDS_SET),
+                synonymMap);
+        if (PORTER) {
+            result = new PorterStemFilter(result);
+	}
         return result;
     }
 

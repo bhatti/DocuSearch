@@ -15,6 +15,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.plexobject.docusearch.cache.CacheFlusher;
 import com.plexobject.docusearch.converter.Converters;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
@@ -33,6 +34,7 @@ public class RepositoryServiceImplTest {
 
     @Before
     public void setUp() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
         repository = EasyMock.createMock(DocumentRepository.class);
         configRepository = EasyMock.createMock(ConfigurationRepository.class);
         service = new RepositoryServiceImpl();
@@ -45,6 +47,7 @@ public class RepositoryServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
     }
 
     @Test

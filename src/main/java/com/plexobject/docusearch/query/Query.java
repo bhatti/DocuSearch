@@ -83,8 +83,9 @@ public interface Query {
      *            - max # of results
      * @return collection of explanations for query results.
      */
-    Collection<String> explain(QueryCriteria criteria, IndexPolicy indexPolicy,
-            QueryPolicy queryPolicy, int start, int limit);
+    Collection<String> explainSearch(QueryCriteria criteria,
+            IndexPolicy indexPolicy, QueryPolicy queryPolicy, int start,
+            int limit);
 
     /**
      * @param policy
@@ -94,4 +95,6 @@ public interface Query {
      * @return top ranking terms
      */
     Collection<RankedTerm> getTopRankingTerms(QueryPolicy policy, int max);
+
+    void close();
 }

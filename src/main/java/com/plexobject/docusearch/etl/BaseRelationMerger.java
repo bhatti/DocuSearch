@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -20,8 +22,8 @@ import com.plexobject.docusearch.domain.DocumentBuilder;
 import com.plexobject.docusearch.metrics.Metric;
 import com.plexobject.docusearch.metrics.Timer;
 import com.plexobject.docusearch.persistence.DocumentRepository;
+import com.plexobject.docusearch.persistence.DocumentsIterator;
 import com.plexobject.docusearch.persistence.PersistenceException;
-import com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb;
 
 /**
  * @author Shahzad Bhatti
@@ -36,7 +38,7 @@ public abstract class BaseRelationMerger implements Runnable {
 
     static final int MAX_LIMIT = Configuration.getInstance().getPageSize();
     Logger logger = Logger.getLogger(getClass());
-    final Map<String, Boolean> seenToDocIds = new HashMap<String, Boolean>();
+    final Map<String, Boolean> seenToDocIds = new TreeMap<String, Boolean>();
 
     final DocumentRepository repository;
     final String fromDatabase;
@@ -48,19 +50,10 @@ public abstract class BaseRelationMerger implements Runnable {
     final RelationType relationType;
     int docCount;
 
-    public BaseRelationMerger(final File configFile) throws IOException {
-        this(new DocumentRepositoryCouchdb(), loadProperties(configFile));
-
-    }
-
     public BaseRelationMerger(final DocumentRepository repository,
             final File configFile) throws IOException {
         this(repository, loadProperties(configFile));
 
-    }
-
-    public BaseRelationMerger(final Properties props) {
-        this(new DocumentRepositoryCouchdb(), props);
     }
 
     public BaseRelationMerger(final DocumentRepository repository,
@@ -106,14 +99,17 @@ public abstract class BaseRelationMerger implements Runnable {
     public void merge(final List<Document> sourceDocuments) {
         final Timer timer = Metric.newTimer(getClass().getSimpleName()
                 + ".merge");
-        for (Document sourceDocument : sourceDocuments) {
-            try {
-                merge(sourceDocument);
-            } catch (Exception e) {
-                logger.error("Failed to merge " + sourceDocument, e);
+        try {
+            for (Document sourceDocument : sourceDocuments) {
+                try {
+                    merge(sourceDocument);
+                } catch (Exception e) {
+                    logger.error("Failed to merge " + sourceDocument, e);
+                }
             }
+        } finally {
+            timer.stop();
         }
-        timer.stop();
     }
 
     public void merge(final Document sourceDocument) {
@@ -140,7 +136,7 @@ public abstract class BaseRelationMerger implements Runnable {
                     final DocumentBuilder docBuilder = new DocumentBuilder(
                             toDocument);
 
-                    final Map<String, String> newRelation = new HashMap<String, String>();
+                    final Map<String, String> newRelation = new TreeMap<String, String>();
                     mergeAttributes(sourceDocument, fromDocument, newRelation);
                     //
                     if (relationType == RelationType.ARRAY) {
@@ -204,25 +200,20 @@ public abstract class BaseRelationMerger implements Runnable {
     @Override
     public void run() {
         try {
-            String startKey = null;
-            List<Document> sourceDocuments = null;
             final Timer timer = Metric.newTimer(getClass().getSimpleName()
                     + ".run");
-
-            while ((sourceDocuments = repository.getAllDocuments(
-                    getSourceDatabase(), startKey, null, MAX_LIMIT)).size() > 0) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Got " + sourceDocuments.size()
-                            + " for starting key " + startKey + ", limit "
-                            + MAX_LIMIT + " -- "
-                            + sourceDocuments.get(0).getId());
-                }
+            int total = 0;
+            final Iterator<List<Document>> docsIt = new DocumentsIterator(
+                    repository, getSourceDatabase(), Configuration
+                            .getInstance().getPageSize());
+            while (docsIt.hasNext()) {
+                List<Document> sourceDocuments = docsIt.next();
+                total += sourceDocuments.size();
                 merge(sourceDocuments);
-                startKey = sourceDocuments.get(sourceDocuments.size() - 1)
-                        .getId();
             }
-            timer.stop("Merged " + startKey + " records of "
-                    + getSourceDatabase());
+            timer
+                    .stop("Merged " + total + " records of "
+                            + getSourceDatabase());
         } catch (PersistenceException e) {
             logger.error("Failed to merge with error-code " + e.getErrorCode(),
                     e);
@@ -242,12 +233,23 @@ public abstract class BaseRelationMerger implements Runnable {
 
     protected Collection<Document> getToDocuments(
             final Document sourceDocument, final String toIdValue) {
-
-        final Map<String, String> criteria = new HashMap<String, String>();
-        criteria.put(toId, toIdValue);
-        final Map<String, Document> toDocs = repository.query(toDatabase,
-                criteria);
-        return toDocs.values();
+        try {
+            // TODO fix
+            if (false) {
+                throw new PersistenceException("");
+            }
+            return Arrays.asList(repository.getDocument(toDatabase, toIdValue));
+        } catch (PersistenceException e) {
+            final Map<String, String> criteria = new TreeMap<String, String>();
+            criteria.put(toId, toIdValue);
+            final Map<String, Document> docs = repository.query(toDatabase,
+                    criteria);
+            if (docs.size() == 0) {
+                throw new PersistenceException("faield to find " + fromId
+                        + " with " + toIdValue);
+            }
+            return docs.values();
+        }
     }
 
     protected void mergeAttributes(final Document sourceDocument,

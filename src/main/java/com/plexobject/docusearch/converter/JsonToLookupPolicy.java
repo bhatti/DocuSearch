@@ -16,9 +16,15 @@ public class JsonToLookupPolicy implements Converter<JSONObject, LookupPolicy> {
     @Override
     public LookupPolicy convert(final JSONObject value) {
         final LookupPolicy policy = new LookupPolicy();
+
         try {
 
             if (value != null) {
+                policy.setDictionaryIndex(value
+                        .optString(Constants.DICTIONARY_DATABASE, null));
+                policy.setDictionaryField(value
+                        .optString(Constants.DICTIONARY_FIELD, null));
+
                 policy.setFieldToReturn(value
                         .getString(Constants.FIELD_TO_RETURN));
                 jsonToQueryPolicy.doConvert(value, policy);

@@ -1,7 +1,7 @@
 package com.plexobject.docusearch.util;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,7 +16,7 @@ public class TrieNode {
     public TrieNode(char c) {
         super();
         this.character = Character.valueOf(c);
-        children = new HashMap<Character, TrieNode>();
+        children = new TreeMap<Character, TrieNode>();
     }
 
     public char getNodeValue() {

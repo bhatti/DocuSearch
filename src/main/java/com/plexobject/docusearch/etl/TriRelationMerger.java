@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -12,10 +13,12 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.springframework.beans.factory.xml.XmlBeanFactory;
+import org.springframework.core.io.FileSystemResource;
 
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.persistence.DocumentRepository;
-import com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb;
+import com.plexobject.docusearch.persistence.PersistenceException;
 
 /**
  * @author Shahzad Bhatti
@@ -28,18 +31,10 @@ public class TriRelationMerger extends BaseRelationMerger {
     final String joinDatabase;
     final String[] joinColumnsToMerge;
 
-    public TriRelationMerger(final File configFile) throws IOException {
-        this(new DocumentRepositoryCouchdb(), loadProperties(configFile));
-    }
-
     public TriRelationMerger(final DocumentRepository repository,
             final File configFile) throws IOException {
         this(repository, loadProperties(configFile));
 
-    }
-
-    public TriRelationMerger(final Properties props) {
-        this(new DocumentRepositoryCouchdb(), props);
     }
 
     public TriRelationMerger(final DocumentRepository repository,
@@ -67,7 +62,20 @@ public class TriRelationMerger extends BaseRelationMerger {
     @Override
     protected Collection<Document> getFromDocuments(
             final Document sourceDocument, final String fromIdValue) {
-        return Arrays.asList(repository.getDocument(fromDatabase, fromIdValue));
+        try {
+            return Arrays.asList(repository.getDocument(fromDatabase,
+                    fromIdValue));
+        } catch (PersistenceException e) {
+            final Map<String, String> criteria = new HashMap<String, String>();
+            criteria.put(fromId, fromIdValue);
+            final Map<String, Document> docs = repository.query(sourceDocument
+                    .getDatabase(), criteria);
+            if (docs.size() == 0) {
+                throw new PersistenceException("faield to find " + fromId
+                        + " with " + fromIdValue);
+            }
+            return docs.values();
+        }
     }
 
     @Override
@@ -100,6 +108,12 @@ public class TriRelationMerger extends BaseRelationMerger {
         if (args.length != 1) {
             usage();
         }
-        new TriRelationMerger(new File(args[0])).run();
+
+        XmlBeanFactory factory = new XmlBeanFactory(new FileSystemResource(
+                "src/main/webapp/WEB-INF/applicationContext.xml"));
+        final DocumentRepository documentRepository = (DocumentRepository) factory
+                .getBean("documentRepository");
+
+        new TriRelationMerger(documentRepository, new File(args[0])).run();
     }
 }

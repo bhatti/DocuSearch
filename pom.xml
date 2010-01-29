@@ -4,10 +4,21 @@
   <groupId>com.plexobject.docusearch</groupId>
   <artifactId>docusearch</artifactId>
   <packaging>war</packaging>
-  <version>0.2.0</version>
-  <name>weseed-search</name>
+  <version>0.3.0</version>
+  <name>docusearch</name>
   <url>http://maven.apache.org</url>
   <dependencies>
+	<dependency>  
+	<groupId>javax.servlet</groupId>  
+	<artifactId>servlet-api</artifactId>  
+        <scope>provided</scope>
+	<version>2.5</version>  
+	</dependency>  
+	<dependency>
+		<groupId>tidy</groupId>
+		<artifactId>tidy</artifactId>
+		<version>r938</version>
+	</dependency>
  	<dependency>
       <groupId>commons-httpclient</groupId>
       <artifactId>commons-httpclient</artifactId>
@@ -102,6 +113,7 @@
       <groupId>easymock</groupId>
       <artifactId>easymock</artifactId>
       <version>2.0</version>
+        <scope>test</scope>
     </dependency>
 	<dependency>
 	  <groupId>com.sleepycat</groupId>
@@ -116,11 +128,16 @@
     <dependency>
        <groupId>com.sun.jersey</groupId>
        <artifactId>jersey-server</artifactId>
-       <version>1.1.2-ea</version>
+       <version>1.1.4</version>
     </dependency>
     <dependency>
         <groupId>org.apache.solr</groupId>
         <artifactId>solr-core</artifactId>
+        <version>1.4-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.solr</groupId>
+        <artifactId>solr-solrj</artifactId>
         <version>1.4-SNAPSHOT</version>
     </dependency>
 
@@ -300,11 +317,11 @@
 		  <systemProperties>
             <systemProperty>
               <key>xcouchdb.user</key>
-              <value>weseed</value>
+              <value>docusearch</value>
             </systemProperty>
             <systemProperty>
               <key>xcouchdb.password</key>
-              <value>We$eed</value>
+              <value>docusearch</value>
             </systemProperty>
           </systemProperties>
         </configuration>
@@ -348,6 +365,29 @@
           <stopPort>9966</stopPort>
           <stopKey>foo</stopKey>
           <jetty-config>src/main/resources/jetty.xml</jetty-config>
+	  <systemProperties>
+            <systemProperty>
+              <name>com.sun.management.jmxremote.port</name>
+              <value>9003</value>
+            </systemProperty>
+            <systemProperty>
+              <name>com.sun.management.jmxremote.ssl</name>
+              <value>false</value>
+            </systemProperty>
+            <systemProperty>
+              <name>com.sun.management.jmxremote.authenticate</name>
+              <value>false</value>
+            </systemProperty>
+            <systemProperty>
+              <name>com.sun.management.jmxremote</name>
+              <value></value>
+            </systemProperty>
+            <systemProperty>
+              <name>activate.index</name>
+              <value>true</value>
+            </systemProperty>
+          </systemProperties>
+
           <connectors>
             <connector implementation="org.mortbay.jetty.nio.SelectChannelConnector">
 		<port>8080</port>
@@ -397,10 +437,28 @@
          </configuration>
       </plugin>
 	  -->
+
+	<plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+               <argLine>-Xmn1024m -Xmx1024m</argLine>
+            </configuration>
+          </plugin>
+
          <plugin>
            <groupId>org.apache.maven.plugins</groupId>
            <artifactId>maven-surefire-report-plugin</artifactId>
            <version>2.4.3</version>
+	   <configuration>
+               <argLine>-Xmn1024m -Xmx1024m</argLine>
+<!--
+               <argLine>-agentpath:/Applications/jprofiler6/bin/macos/libjprofilerti.jnilib=port=8849 -Xmn1024m -Xmx1024m</argLine>
+               <argLine>-Xmn1024m -Xmx1024m</argLine>
+-->
+               <disableXmlReport>true</disableXmlReport>
+           </configuration>
+
          </plugin>
          <plugin>
            <groupId>org.codehaus.mojo</groupId>
@@ -509,7 +567,29 @@
       <url>http://download.oracle.com/maven</url>
       <layout>default</layout>
     </repository>
+    <repository>
+        <id>official-maven-repository</id>
+        <name>Official Maven 2 Repository</name>
+        <url>http://repo2.maven.org/maven2</url>
+        <layout>default</layout>
+    </repository>
+    <repository>
+      <id>javanet</id>
+      <name>javanet</name>
+      <url>http://download.java.net/maven/2/</url>
+      <layout>default</layout>
+    </repository>
 
   </repositories>
-
+  <profiles>
+    <profile>
+      <id>jprofiler-profile</id>
+ 
+      <properties>
+        <jprofiler.home>/Applications/jprofiler6</jprofiler.home>
+      </properties>
+ 
+    </profile>
+  </profiles>
 </project>
+

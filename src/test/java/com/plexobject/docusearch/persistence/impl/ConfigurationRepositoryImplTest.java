@@ -2,7 +2,7 @@ package com.plexobject.docusearch.persistence.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.easymock.EasyMock;
@@ -20,9 +20,10 @@ import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PersistenceException;
 import com.plexobject.docusearch.query.LookupPolicy;
 import com.plexobject.docusearch.query.QueryPolicy;
+import com.plexobject.docusearch.query.QueryPolicy.FieldType;
 
 public class ConfigurationRepositoryImplTest {
-    private static final String DB_NAME = "MYDB";
+    private static final String DB_NAME = "ConfigurationRepositoryImplTestDB";
 
     private DocumentRepository repository;
 
@@ -99,15 +100,15 @@ public class ConfigurationRepositoryImplTest {
         EasyMock.expect(
                 repository.getDocument(Configuration.getInstance()
                         .getConfigDatabase(), "lookup_policy_for_" + DB_NAME))
-                .andReturn(newQueryPolicyDocument());
+                .andReturn(newLookupPolicyDocument());
 
         EasyMock.replay(repository);
         ConfigurationRepositoryImpl configRepository = new ConfigurationRepositoryImpl(
                 Configuration.getInstance().getConfigDatabase());
         configRepository.setDocumentRepository(repository);
-        QueryPolicy policy = configRepository.getLookupPolicy(DB_NAME);
+        LookupPolicy policy = configRepository.getLookupPolicy(DB_NAME);
 
-        Assert.assertEquals(newQueryPolicy(), policy);
+        Assert.assertEquals(newLookupPolicy(), policy);
         EasyMock.verify(repository);
     }
 
@@ -176,7 +177,7 @@ public class ConfigurationRepositoryImplTest {
         LookupPolicy policy = configRepository.saveLookupPolicy(DB_NAME,
                 newLookupPolicy());
 
-        Assert.assertEquals(newQueryPolicy(), policy);
+        Assert.assertEquals(newLookupPolicy(), policy);
         EasyMock.verify(repository);
     }
 
@@ -185,7 +186,7 @@ public class ConfigurationRepositoryImplTest {
         policy.setScore(10);
         policy.setBoost(20.5F);
         for (int i = 0; i < 10; i++) {
-            policy.add("name" + i, i % 2 == 0, i % 2 == 1, i % 2 == 1, 1.1F,
+            policy.add("name" + i, i % 2 == 0, null, i % 2 == 1, i % 2 == 1, 1.1F,
                     false, false, false);
         }
         return policy;
@@ -198,12 +199,12 @@ public class ConfigurationRepositoryImplTest {
     }
 
     private static Map<String, Object> newIndexPolicyMap() {
-        final Map<String, Object> map = new HashMap<String, Object>();
+        final Map<String, Object> map = new TreeMap<String, Object>();
         map.put(Constants.SCORE, 10);
         map.put(Constants.BOOST, 20.5);
         final Collection<Map<String, Object>> fields = new ArrayList<Map<String, Object>>();
         for (int i = 0; i < 10; i++) {
-            final Map<String, Object> field = new HashMap<String, Object>();
+            final Map<String, Object> field = new TreeMap<String, Object>();
             field.put(Constants.NAME, "name" + i);
             field.put(Constants.STORE_IN_INDEX, i % 2 == 0);
             field.put(Constants.ANALYZE, i % 2 == 1);
@@ -224,9 +225,9 @@ public class ConfigurationRepositoryImplTest {
 
     private static LookupPolicy newLookupPolicy() {
         final LookupPolicy policy = new LookupPolicy();
-        policy.setFieldToReturn("returnField");
+        policy.setFieldToReturn("fieldToReturn");
         for (int i = 0; i < 10; i++) {
-            policy.add("name" + i);
+            policy.add("name" + i, i, i % 2 == 1, 1.1F, FieldType.STRING);
         }
         return policy;
     }
@@ -244,11 +245,11 @@ public class ConfigurationRepositoryImplTest {
     }
 
     private static Map<String, Object> newQueryPolicyMap() {
-        final Map<String, Object> map = new HashMap<String, Object>();
+        final Map<String, Object> map = new TreeMap<String, Object>();
 
         final Collection<Map<String, Object>> fields = new ArrayList<Map<String, Object>>();
         for (int i = 0; i < 10; i++) {
-            final Map<String, Object> field = new HashMap<String, Object>();
+            final Map<String, Object> field = new TreeMap<String, Object>();
             field.put(Constants.NAME, "name" + i);
             field.put(Constants.SORT_ORDER, i);
             field.put(Constants.ASCENDING_ORDER, i % 2 == 1);

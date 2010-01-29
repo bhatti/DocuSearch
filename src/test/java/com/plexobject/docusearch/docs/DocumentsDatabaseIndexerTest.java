@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.plexobject.docusearch.Configuration;
+import com.plexobject.docusearch.cache.CacheFlusher;
 import com.plexobject.docusearch.docs.impl.DocumentsDatabaseIndexerImpl;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.index.IndexPolicy;
@@ -19,7 +20,7 @@ import com.plexobject.docusearch.persistence.PagedList;
 
 public class DocumentsDatabaseIndexerTest {
     private static Logger LOGGER = Logger.getRootLogger();
-    private static final String DB_NAME = "MYDB";
+    private static final String DB_NAME = "DocumentsDatabaseIndexerTestDB";
     private static final String SECONDARY_TEST_DATUM_ID = "secondary_test_datum_id";
     private static final String TEST_DATUM_ID = "test_datum_id";
     private static final String TEST_DB_SECONDARY_TEST_DB = "test_data_secondary_test_data";
@@ -41,10 +42,12 @@ public class DocumentsDatabaseIndexerTest {
         indexer = new DocumentsDatabaseIndexerImpl();
         indexer.setDocumentRepository(repository);
         indexer.setConfigRepository(configRepository);
+        CacheFlusher.getInstance().flushCaches();
     }
 
     @After
     public void tearDown() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
     }
 
     @Test
@@ -58,7 +61,7 @@ public class DocumentsDatabaseIndexerTest {
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
-        indexer.indexUsingPrimaryDatabase(DB_NAME, null);
+        indexer.indexUsingPrimaryDatabase(DB_NAME, null, null);
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
     }

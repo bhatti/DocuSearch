@@ -10,6 +10,8 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.springframework.beans.factory.xml.XmlBeanFactory;
+import org.springframework.core.io.FileSystemResource;
 
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.persistence.DocumentRepository;
@@ -22,20 +24,10 @@ import com.plexobject.docusearch.persistence.DocumentRepository;
  * 
  */
 public class BiRelationMerger extends BaseRelationMerger {
-
-    public BiRelationMerger(final File configFile) throws IOException {
-        super(configFile);
-
-    }
-
     public BiRelationMerger(final DocumentRepository repository,
             final File configFile) throws IOException {
         super(repository, configFile);
 
-    }
-
-    public BiRelationMerger(final Properties props) {
-        super(props);
     }
 
     public BiRelationMerger(final DocumentRepository repository,
@@ -70,7 +62,12 @@ public class BiRelationMerger extends BaseRelationMerger {
             return;
         }
 
-        new BiRelationMerger(new File(args[0])).run();
+        XmlBeanFactory factory = new XmlBeanFactory(new FileSystemResource(
+                "src/main/webapp/WEB-INF/applicationContext.xml"));
+        final DocumentRepository documentRepository = (DocumentRepository) factory
+                .getBean("documentRepository");
+
+        new BiRelationMerger(documentRepository, new File(args[0])).run();
         // new BiRelationMerger(new
         // File("data/merge_ticker_tags.properties")).run();
     }

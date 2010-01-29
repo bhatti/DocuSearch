@@ -1,6 +1,6 @@
 package com.plexobject.docusearch.converter;
 
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -34,7 +34,7 @@ public class QueryPolicyToJsonTest {
 
         JSONArray fields = policy.getJSONArray(Constants.FIELDS);
         Assert.assertEquals(10, fields.length());
-        Map<String, Integer> count = new HashMap<String, Integer>();
+        Map<String, Integer> count = new TreeMap<String, Integer>();
 
         for (int i = 0; i < 10; i++) {
             count.put("name" + i, new Integer(0));

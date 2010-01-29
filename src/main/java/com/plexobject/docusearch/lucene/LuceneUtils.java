@@ -6,7 +6,6 @@ import java.io.StringReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +33,8 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 import com.plexobject.docusearch.Configuration;
+import com.plexobject.docusearch.cache.CacheLoader;
+import com.plexobject.docusearch.cache.CachedMap;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.index.lucene.ThreadedIndexWriter;
 import com.plexobject.docusearch.lucene.analyzer.SynonymAnalyzer;
@@ -46,16 +47,23 @@ import com.plexobject.docusearch.lucene.analyzer.SynonymAnalyzer;
 public final class LuceneUtils {
     private static final Logger LOGGER = Logger.getLogger(LuceneUtils.class);
     private static final String LUCENE_ANALYZER = "lucene.analyzer";
+    private static final String STANDARD_BGRAM_ANALYZER_TYPE = "StandardBgramAnalyzer";
     private static final String SYNONYM_ANALYZER_TYPE = "SynonymAnalyzer";
-    private static final String ANALYZER_TYPE = Configuration.getInstance()
-            .getProperty(LUCENE_ANALYZER, SYNONYM_ANALYZER_TYPE);
+    private static final String STANDARD_ANALYZER_TYPE = "StandardAnalyzer";
 
+    private static final String ANALYZER_TYPE = Configuration.getInstance()
+            .getProperty(LUCENE_ANALYZER, STANDARD_BGRAM_ANALYZER_TYPE);
+
+    public static final boolean ACTIVATE_INDEX = Configuration.getInstance()
+            .getBoolean("activate.index", true);
     public static final String DEFAULT_OPERATOR = System.getProperty(
             "lucene.operator", "OR");
-    public static final File INDEX_DIR = new File(System
-            .getProperty("user.home"), System.getProperty("lucene.dir",
-            ".lucene"));
-
+    public static final File DEFAULT_INDEX_DIR = new File(System
+            .getProperty("user.home"), ".lucene");
+    // public static final File INDEX_DIR = new File(Configuration.getInstance()
+    // .getProperty("lucene.dir", DEFAULT_INDEX_DIR.getAbsolutePath()));
+    public static final File INDEX_DIR = new File(Configuration.getInstance()
+            .getProperty("lucene.dir"));
     public static final int RAM_BUF = Integer.getInteger("lucene.ram", 16);
 
     public static final int BATCH_SIZE = Integer
@@ -63,8 +71,16 @@ public final class LuceneUtils {
 
     public static final int COMMIT_MIN = Integer.getInteger(
             "lucene.commit.min", 5000);
+    private static final long INDEFINITE = -1;
 
-    private static final Map<File, Directory> cachedFSDirs = new HashMap<File, Directory>();
+    private static final Map<File, Directory> cachedFSDirs = new CachedMap<File, Directory>(
+            INDEFINITE, 24, new CacheLoader<File, Directory>() {
+
+                @Override
+                public Directory get(File dir) {
+                    return createFSDirectory(dir);
+                }
+            }, null);
 
     @SuppressWarnings("unchecked")
     public static final Set<String> STOP_WORDS_SET = new HashSet<String>() {
@@ -103,9 +119,10 @@ public final class LuceneUtils {
     public static Analyzer getAnalyzer(final String type) {
         if (SYNONYM_ANALYZER_TYPE.equalsIgnoreCase(type)) {
             return new SynonymAnalyzer();
-
-        } else {
+        } else if (STANDARD_ANALYZER_TYPE.equalsIgnoreCase(type)) {
             return new StandardAnalyzer(Version.LUCENE_CURRENT);
+        } else {
+            return new SynonymAnalyzer();
         }
     }
 
@@ -115,10 +132,22 @@ public final class LuceneUtils {
         }
     }
 
-    public static Query docQuery(final String viewname, final String id) {
+    public static Query docQuery(final String viewname, final String id,
+            final String... opts) {
         BooleanQuery q = new BooleanQuery();
-        q.add(new TermQuery(new Term(Document.DATABASE, viewname)), Occur.MUST);
+        if (viewname != null) {
+            q.add(new TermQuery(new Term(Document.DATABASE, viewname)),
+                    Occur.MUST);
+        }
         q.add(new TermQuery(new Term(Document.ID, id)), Occur.MUST);
+
+        for (int i = 0; opts != null && i < opts.length - 1; i += 2) {
+            if (opts[i] != null && opts[i + 1] != null) {
+                q
+                        .add(new TermQuery(new Term(opts[i], opts[i + 1])),
+                                Occur.MUST);
+            }
+        }
         return q;
     }
 
@@ -170,45 +199,52 @@ public final class LuceneUtils {
     public static synchronized Directory toFSDirectory(final File dir) {
         Directory d = cachedFSDirs.get(dir);
         if (d == null) {
-            // Create index directory if missing.
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {
-                    LOGGER.fatal("Unable to create index dir "
-                            + dir.getAbsolutePath());
-                    throw new Error("Unable to create index dir "
-                            + dir.getAbsolutePath());
-                }
-            }
-
-            // Verify index directory is writable.
-            if (!dir.canWrite()) {
-                LOGGER.fatal(dir.getAbsolutePath() + " is not writable.");
-                throw new Error(dir.getAbsolutePath() + " is not writable.");
-            }
-
-            try {
-                d = FSDirectory.open(dir);
-
-                // Check index prior to startup if it exists.
-                if (IndexReader.indexExists(d)) {
-                    final CheckIndex check = new CheckIndex(d);
-                    final CheckIndex.Status status = check.checkIndex();
-                    if (status.clean) {
-                        LOGGER.debug("Index is clean.");
-                    } else {
-                        LOGGER.warn("Index is not clean.");
-                    }
-                }
-                cachedFSDirs.put(dir, d);
-            } catch (Throwable e) {
-                LOGGER.error("Failed to unlock index", e);
-                throw new RuntimeException(
-                        "failed to open lucene index, check class path "
-                                + FSDirectory.class.getProtectionDomain()
-                                        .getCodeSource().getLocation(), e);
-            }
+            d = createFSDirectory(dir);
+            cachedFSDirs.put(dir, d);
         }
         return d;
+    }
+
+    private static Directory createFSDirectory(final File dir) {
+        // Create index directory if missing.
+        if (!dir.exists()) {
+            if (!dir.mkdirs()) {
+                LOGGER.fatal("Unable to create index dir "
+                        + dir.getAbsolutePath());
+                throw new Error("Unable to create index dir "
+                        + dir.getAbsolutePath());
+            }
+        }
+
+        // Verify index directory is writable.
+        if (ACTIVATE_INDEX && !dir.canWrite()) {
+            LOGGER.fatal(dir.getAbsolutePath() + " is not writable.");
+            throw new RuntimeException(dir.getAbsolutePath()
+                    + " is not writable.");
+        }
+
+        try {
+            Directory d = FSDirectory.open(dir);
+
+            // Check index prior to startup if it exists.
+            if (IndexReader.indexExists(d)) {
+                final CheckIndex check = new CheckIndex(d);
+                final CheckIndex.Status status = check.checkIndex();
+                if (status.clean) {
+                    LOGGER.debug("Index is clean.");
+                } else {
+                    LOGGER.warn("Index is not clean.");
+                }
+            }
+            return d;
+
+        } catch (Throwable e) {
+            LOGGER.error("Failed to unlock index", e);
+            throw new RuntimeException(
+                    "failed to open lucene index, check class path "
+                            + FSDirectory.class.getProtectionDomain()
+                                    .getCodeSource().getLocation(), e);
+        }
     }
 
     public static Token[] tokensFromAnalysis(Analyzer analyzer, String text)

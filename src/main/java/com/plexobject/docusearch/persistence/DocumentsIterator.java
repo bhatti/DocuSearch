@@ -22,6 +22,9 @@ public class DocumentsIterator implements Iterator<List<Document>> {
 
     public DocumentsIterator(final DocumentRepository repository,
             final String database, final String startKey, final int limit) {
+        if (repository == null) {
+            throw new NullPointerException("null repository");
+        }
         this.repository = repository;
         this.database = database;
         this.startKey = startKey;
@@ -33,6 +36,9 @@ public class DocumentsIterator implements Iterator<List<Document>> {
         final String endKey = null;
         docs = repository
                 .getAllDocuments(database, startKey, endKey, limit + 1);
+        if (docs == null) {
+            throw new IllegalStateException("null documents from " + repository);
+        }
         startKey = docs.hasMore() ? docs.remove(limit).getId() : null;
         total += docs.size();
         requests++;

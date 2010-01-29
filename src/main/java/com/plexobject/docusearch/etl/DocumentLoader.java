@@ -54,32 +54,41 @@ public class DocumentLoader extends DelimitedFileParser {
         }
 
         if (rowNum == 0) {
-
-            final IndexPolicy indexPolicy = new IndexPolicy();
-            for (String field : row.keySet()) {
-                indexPolicy.add(field);
-            }
-            try {
-                configRepository.saveIndexPolicy(database, indexPolicy);
-            } catch (PersistenceException e) {
-                LOGGER.error("Failed to add " + indexPolicy
-                        + " with error-code " + e.getErrorCode() + "-" + e);
-            }
-            final QueryPolicy queryPolicy = new QueryPolicy();
-            for (String field : row.keySet()) {
-                queryPolicy.add(field);
-            }
-            try {
-                configRepository.saveQueryPolicy(database, queryPolicy);
-            } catch (PersistenceException e) {
-                LOGGER.error("Failed to add " + queryPolicy
-                        + " with error-code " + e.getErrorCode() + "-" + e);
+            if (false) {
+                final IndexPolicy indexPolicy = new IndexPolicy();
+                for (String field : row.keySet()) {
+                    indexPolicy.add(field);
+                }
+                try {
+                    configRepository.saveIndexPolicy(database, indexPolicy);
+                } catch (PersistenceException e) {
+                    LOGGER.error("Failed to add " + indexPolicy
+                            + " with error-code " + e.getErrorCode() + "-" + e);
+                }
+                final QueryPolicy queryPolicy = new QueryPolicy();
+                for (String field : row.keySet()) {
+                    queryPolicy.add(field);
+                }
+                try {
+                    configRepository.saveQueryPolicy(database, queryPolicy);
+                } catch (PersistenceException e) {
+                    LOGGER.error("Failed to add " + queryPolicy
+                            + " with error-code " + e.getErrorCode() + "-" + e);
+                }
             }
             try {
                 documentRepository.createDatabase(database);
             } catch (PersistenceException e) {
             }
         }
+        // if (true) {
+        // // System.out.println(row.get(idColumn) + "|" + row.get("active"));
+        // // System.out.println(row.get(idColumn) + "|" + row.get("province")
+        // // + "|" + row.get("country") + "|" + row.get("city")); // +
+        // // "|"+
+        // // row.get("name"));
+        // return true;
+        // }
         final String id = GenericValidator.isBlankOrNull(idColumn)
                 || "none".equalsIgnoreCase(idColumn) ? null : row.get(idColumn);
         Document oldDoc = null;
@@ -94,6 +103,7 @@ public class DocumentLoader extends DelimitedFileParser {
         }
         docBuilder.putAll(row);
         final Document doc = docBuilder.build();
+
         try {
             final Document saved = documentRepository.saveDocument(doc, false);
             if (rowNum > 0 && rowNum % 1000 == 0) {
@@ -160,7 +170,7 @@ public class DocumentLoader extends DelimitedFileParser {
             XmlBeanFactory factory = new XmlBeanFactory(new FileSystemResource(
                     "src/main/webapp/WEB-INF/applicationContext.xml"));
             DocumentLoader xtractor = new DocumentLoader(new File(args[1]),
-                    '|', args[0], args[2], args[3].split(","));
+                    '~', args[0], args[2], args[3].split(","));
             xtractor.configRepository = (ConfigurationRepository) factory
                     .getBean("configRepository");
             xtractor.documentRepository = (DocumentRepository) factory

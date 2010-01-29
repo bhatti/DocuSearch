@@ -1,20 +1,20 @@
 package com.plexobject.docusearch.docs;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.plexobject.docusearch.Configuration;
+import com.plexobject.docusearch.cache.CacheFlusher;
 import com.plexobject.docusearch.docs.impl.DocumentsDatabaseSearcherImpl;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
@@ -30,7 +30,7 @@ public class DocumentsDatabaseSearcherTest {
     private static Logger LOGGER = Logger.getRootLogger();
     private static final int MAX_LIMIT = Configuration.getInstance()
             .getPageSize();
-    private static final String DB_NAME = "MYDB";
+    private static final String DB_NAME = "DocumentsDatabaseSearcherTestDB";
 
     private DocumentRepository repository;
     private ConfigurationRepository configRepository;
@@ -38,27 +38,30 @@ public class DocumentsDatabaseSearcherTest {
 
     @Before
     public void setUp() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
         LOGGER.setLevel(Level.INFO);
 
         LOGGER.addAppender(new ConsoleAppender(new PatternLayout(
                 PatternLayout.TTCC_CONVERSION_PATTERN)));
         repository = EasyMock.createMock(DocumentRepository.class);
         configRepository = EasyMock.createMock(ConfigurationRepository.class);
+
         searcher = new DocumentsDatabaseSearcherImpl();
         searcher.setDocumentRepository(repository);
         searcher.setConfigRepository(configRepository);
+
         index();
     }
 
     @After
     public void tearDown() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
     }
 
     @Test
     public final void testQuery() {
         EasyMock.expect(configRepository.getQueryPolicy(DB_NAME)).andReturn(
                 newQueryPolicy());
-
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
@@ -91,7 +94,7 @@ public class DocumentsDatabaseSearcherTest {
             final String[] indexFields, final boolean deleteExisting)
             throws Exception {
 
-        final Map<String, Object> attrs = new HashMap<String, Object>();
+        final Map<String, Object> attrs = new TreeMap<String, Object>();
         for (int i = 0; i < fields.length - 1; i += 2) {
             attrs.put(fields[i], fields[i + 1]);
         }
@@ -111,7 +114,7 @@ public class DocumentsDatabaseSearcherTest {
         policy.setScore(score);
         final IndexerImpl indexer = new IndexerImpl(new File(
                 LuceneUtils.INDEX_DIR, DB_NAME));
-        return indexer.index(policy, new SimpleDocumentsIterator(doc),
+        return indexer.index(policy, new SimpleDocumentsIterator(doc), null,
                 deleteExisting);
     }
 

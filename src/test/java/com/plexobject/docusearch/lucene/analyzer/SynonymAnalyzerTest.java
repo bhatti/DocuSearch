@@ -139,6 +139,9 @@ public class SynonymAnalyzerTest {
         setupLocalSynonymMap();
         setupSearcher();
         String[] keywords = new String[] { "jumps", "hops", "leaps" };
+        // TODO fix it
+        //keywords = new String[] { "jump", "hop", "leap" };
+
         for (String keyword : keywords) {
             TermQuery tq = new TermQuery(new Term("content", keyword));
             Assert.assertEquals("unexpected result for " + keyword + " using "

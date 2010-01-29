@@ -91,4 +91,9 @@ public class Configuration {
         return Long.valueOf(getProperty(key, String.valueOf(def)));
     }
 
+    @Override
+    public String toString() {
+        return properties.toString();
+    }
+
 }

@@ -1,9 +1,11 @@
 package com.plexobject.docusearch.domain;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.commons.validator.GenericValidator;
 
 /**
  * This class represents document stored in the document-based database.
@@ -11,7 +13,7 @@ import java.util.Map.Entry;
  * @author Shahzad Bhatti
  */
 public class DocumentBuilder implements Builder<Document> {
-    protected final Map<String, Object> properties = new HashMap<String, Object>();
+    protected final Map<String, Object> properties = new TreeMap<String, Object>();
 
     public DocumentBuilder() {
     }
@@ -25,17 +27,32 @@ public class DocumentBuilder implements Builder<Document> {
     }
 
     public DocumentBuilder setDatabase(final String database) {
+        if (GenericValidator.isBlankOrNull(database)) {
+            throw new IllegalArgumentException("database is not specified");
+        }
         this.properties.put(Document.DATABASE, database);
         return this;
     }
 
     public DocumentBuilder setId(final String id) {
-        this.properties.put(Document.ID, id);
+        if (!GenericValidator.isBlankOrNull(id)) {
+            this.properties.put(Document.ID, id);
+        }
+        return this;
+    }
+
+    public DocumentBuilder setSecondaryId(final String id) {
+        if (GenericValidator.isBlankOrNull(id)) {
+            throw new IllegalArgumentException("secondary id is not specified");
+        }
+        this.properties.put(Document.SECONDARY_ID, id);
         return this;
     }
 
     public DocumentBuilder setRevision(final String rev) {
-        this.properties.put(Document.REVISION, rev);
+        if (!GenericValidator.isBlankOrNull(rev)) {
+            this.properties.put(Document.REVISION, rev);
+        }
         return this;
     }
 

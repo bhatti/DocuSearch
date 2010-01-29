@@ -2,20 +2,24 @@ package com.plexobject.docusearch.docs.impl;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.validator.GenericValidator;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.plexobject.docusearch.Configuration;
+import com.plexobject.docusearch.cache.CacheLoader;
+import com.plexobject.docusearch.cache.CachedMap;
 import com.plexobject.docusearch.docs.DocumentsDatabaseIndexer;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
+import com.plexobject.docusearch.domain.Pair;
 import com.plexobject.docusearch.index.IndexPolicy;
 import com.plexobject.docusearch.index.Indexer;
 import com.plexobject.docusearch.index.lucene.IndexerImpl;
@@ -29,7 +33,8 @@ import com.plexobject.docusearch.persistence.SimpleDocumentsIterator;
 import com.sun.jersey.spi.inject.Inject;
 
 @Component("documentsDatabaseIndexer")
-public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
+public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer,
+        InitializingBean {
     interface DocumentTransformer {
         List<Document> transform(List<Document> docs);
     }
@@ -65,8 +70,9 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
         public void remove() {
             throw new UnsupportedOperationException();
         }
-
     }
+
+    private static final long INDEFINITE = 0;
 
     @SuppressWarnings("unused")
     private static final Logger LOGGER = Logger
@@ -79,7 +85,14 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
     @Inject
     ConfigurationRepository configRepository;
 
-    private final Map<File, Indexer> cachedIndexers = new HashMap<File, Indexer>();
+    private final Map<File, Indexer> cachedIndexers = new CachedMap<File, Indexer>(
+            INDEFINITE, 32, new CacheLoader<File, Indexer>() {
+
+                @Override
+                public Indexer get(File dir) {
+                    return new IndexerImpl(dir);
+                }
+            }, null);
 
     public DocumentsDatabaseIndexerImpl() {
     }
@@ -87,12 +100,12 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.docs.DocumentsDatabaseIndexer#indexUsingPrimaryDatabase
-     * (java.lang.String)
+     * @seecom.plexobject.docusearch.docs.DocumentsDatabaseIndexer#
+     * indexUsingPrimaryDatabase (java.lang.String)
      */
+    @Override
     public int indexUsingPrimaryDatabase(final String index,
-            final String policyName) {
+            final String sourceDatabase, final String policyName) {
         if (GenericValidator.isBlankOrNull(index)) {
             throw new IllegalArgumentException("index not specified");
         }
@@ -105,24 +118,29 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
         final IndexPolicy policy = configRepository
                 .getIndexPolicy(policyName == null ? index : policyName);
 
+        final String db = sourceDatabase == null
+                || sourceDatabase.length() == 0 ? index : sourceDatabase;
         final Iterator<List<Document>> docsIt = new DocumentsIterator(
-                documentRepository, index, Configuration.getInstance()
+                documentRepository, db, Configuration.getInstance()
                         .getPageSize());
 
-        final int succeeded = indexDocuments(dir, policy, docsIt, true);
+        final int succeeded = indexDocuments(dir, policy, docsIt, null, true);
 
-        timer.stop("succeeded indexing " + succeeded + " documents");
+        timer
+                .stop("succeeded indexing " + index + " from " + db
+                        + " using policy " + policy + " -- " + succeeded
+                        + " documents");
         return succeeded;
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.plexobject.docusearch.docs.DocumentsDatabaseIndexer#indexUsingSecondaryDatabase
-     * (java.lang.String, java.lang.String, java.lang.String, java.lang.String,
-     * java.lang.String)
+     * @seecom.plexobject.docusearch.docs.DocumentsDatabaseIndexer#
+     * indexUsingSecondaryDatabase (java.lang.String, java.lang.String,
+     * java.lang.String, java.lang.String, java.lang.String)
      */
+    @Override
     public int indexUsingSecondaryDatabase(final String index,
             final String policyName, final String sourceDatabase,
             final String joinDatabase, final String indexIdInJoinDatabase,
@@ -154,8 +172,8 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
         final IndexPolicy policy = configRepository
                 .getIndexPolicy(policyName == null ? (index + "_" + sourceDatabase)
                         : policyName);
-        policy.add(sourceIdInJoinDatabase, true, false, false, 0.0F, false,
-                false, false);
+        policy.add(sourceIdInJoinDatabase, true, null, false, false, 0.0F,
+                false, false, false); // TODO name storeA
 
         final TransformableDocumentsIterator docsIt = new TransformableDocumentsIterator(
                 joinDatabase, Configuration.getInstance().getPageSize(),
@@ -169,7 +187,8 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
                     }
                 });
 
-        final int succeeded = indexDocuments(dir, policy, docsIt, true);
+        final int succeeded = indexDocuments(dir, policy, docsIt,
+                sourceIdInJoinDatabase, true);
         timer.stop("succeeded indexing " + succeeded + " documents");
 
         return succeeded;
@@ -182,6 +201,7 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
      * @seecom.plexobject.docusearch.docs.DocumentsDatabaseIndexer#
      * updateIndexUsingPrimaryDatabase(java.lang.String, java.lang.String[])
      */
+    @Override
     public int updateIndexUsingPrimaryDatabase(final String index,
             final String policyName, final String[] docIds) {
         return updateIndexUsingPrimaryDatabase(index, policyName,
@@ -194,6 +214,7 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
      * @seecom.plexobject.docusearch.docs.DocumentsDatabaseIndexer#
      * updateIndexUsingPrimaryDatabase(java.lang.String, java.util.List)
      */
+    @Override
     public int updateIndexUsingPrimaryDatabase(final String index,
             final String policyName, final List<Document> docs) {
         if (GenericValidator.isBlankOrNull(index)) {
@@ -210,7 +231,7 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
                 .getIndexPolicy(policyName == null ? index : policyName);
 
         final SimpleDocumentsIterator docsIt = new SimpleDocumentsIterator(docs);
-        int succeeded = indexDocuments(dir, policy, docsIt, true);
+        int succeeded = indexDocuments(dir, policy, docsIt, null, true);
 
         timer.stop(" succeeded indexing " + succeeded + "/" + docs.size()
                 + " records of " + index + " with policy " + policy);
@@ -224,6 +245,7 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
      * updateIndexUsingSecondaryDatabase(java.lang.String, java.lang.String,
      * java.lang.String, java.lang.String, java.lang.String, java.lang.String[])
      */
+    @Override
     public int updateIndexUsingSecondaryDatabase(final String index,
             final String policyName, final String sourceDatabase,
             final String joinDatabase, final String indexIdInJoinDatabase,
@@ -263,10 +285,23 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
                         : policyName);
         final SimpleDocumentsIterator docsIt = new SimpleDocumentsIterator(
                 docsToIndex);
-        int succeeded = indexDocuments(dir, policy, docsIt, true);
+        int succeeded = indexDocuments(dir, policy, docsIt,
+                sourceIdInJoinDatabase, true);
         timer.stop("succeeded indexing " + succeeded + " documents");
 
         return succeeded;
+    }
+
+    @Override
+    public int removeIndexedDocuments(final String index,
+            final String database, final String secondaryIdName,
+            final Collection<Pair<String, String>> primaryAndSecondaryIds,
+            final int olderThanDays) {
+        final File dir = new File(LuceneUtils.INDEX_DIR, index);
+
+        final Indexer indexer = newIndexer(dir);
+        return indexer.removeIndexedDocuments(database, secondaryIdName,
+                primaryAndSecondaryIds, olderThanDays);
     }
 
     /**
@@ -338,10 +373,21 @@ public class DocumentsDatabaseIndexerImpl implements DocumentsDatabaseIndexer {
     }
 
     private int indexDocuments(final File dir, final IndexPolicy policy,
-            Iterator<List<Document>> docsIt, final boolean deleteExisting) {
+            final Iterator<List<Document>> docsIt, final String secondaryId,
+            final boolean deleteExisting) {
         final Indexer indexer = newIndexer(dir);
+        return indexer.index(policy, docsIt, secondaryId, deleteExisting);
+    }
 
-        return indexer.index(policy, docsIt, deleteExisting);
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (documentRepository == null) {
+            throw new IllegalStateException("documentRepository not set");
+        }
+        if (configRepository == null) {
+            throw new IllegalStateException(
+                    "documenconfigRepositorytRepository not set");
+        }
     }
 
     synchronized Indexer newIndexer(File dir) {

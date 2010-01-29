@@ -4,10 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import junit.framework.Assert;
 import org.codehaus.jettison.json.JSONObject;
@@ -68,7 +67,7 @@ public class DocumentRepositoryCouchdbTest {
                                 .values())));
         EasyMock.replay(httpClient);
 
-        Map<String, String> criteria = new HashMap<String, String>();
+        Map<String, String> criteria = new TreeMap<String, String>();
         criteria.put("B", "2");
 
         Map<String, Document> saved = repository.query(DB_NAME, criteria);
@@ -92,7 +91,7 @@ public class DocumentRepositoryCouchdbTest {
                                 prepareJsonReply(new ArrayList<Document>())));
         EasyMock.replay(httpClient);
 
-        Map<String, String> criteria = new HashMap<String, String>();
+        Map<String, String> criteria = new TreeMap<String, String>();
         criteria.put("Z", "9");
 
         Map<String, Document> saved = repository.query(DB_NAME, criteria);

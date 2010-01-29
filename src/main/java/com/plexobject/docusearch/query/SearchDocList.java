@@ -5,6 +5,8 @@ package com.plexobject.docusearch.query;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -25,12 +27,24 @@ public class SearchDocList implements List<SearchDoc> {
     private final List<SearchDoc> docs = new ArrayList<SearchDoc>();
 
     public SearchDocList(final int start, final int pageSize,
-            final int totalHits, final Collection<SearchDoc> c,
+            final int totalHits, final List<SearchDoc> c,
             final Collection<String> similarWords) {
         this.start = start;
         this.pageSize = pageSize;
         this.similarWords = similarWords;
         this.totalHits = totalHits;
+        Collections.sort(c, new Comparator<SearchDoc>() {
+            @Override
+            public int compare(SearchDoc first, SearchDoc second) {
+                if (first.getScore() > second.getScore()) {
+                    return -1;
+                } else if (first.getScore() < second.getScore()) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        });
         this.docs.addAll(c);
     }
 

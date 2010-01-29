@@ -1,7 +1,7 @@
 package com.plexobject.docusearch.converter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +23,7 @@ public class QueryPolicyToMap implements
      */
     @Override
     public Map<String, Object> convert(final QueryPolicy policy) {
-        final Map<String, Object> value = new HashMap<String, Object>();
+        final Map<String, Object> value = new TreeMap<String, Object>();
 
         if (policy != null) {
             doConvert(policy, value);
@@ -32,9 +32,12 @@ public class QueryPolicyToMap implements
     }
 
     void doConvert(final QueryPolicy policy, final Map<String, Object> value) {
+        value.put(Constants.SORTING_MULTIPLIER, policy.getSortingMultiplier());
+        value.put(Constants.ANALYZER, policy.getAnalyzer());
+
         final List<Object> mapFields = new ArrayList<Object>();
         for (QueryPolicy.Field field : policy.getFields()) {
-            final Map<String, Object> mapField = new HashMap<String, Object>();
+            final Map<String, Object> mapField = new TreeMap<String, Object>();
 
             mapField.put(Constants.NAME, field.name);
             mapField.put(Constants.SORT_ORDER, field.sortOrder);

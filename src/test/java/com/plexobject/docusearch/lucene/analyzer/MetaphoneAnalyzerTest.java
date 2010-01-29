@@ -20,7 +20,7 @@ public class MetaphoneAnalyzerTest {
 		RAMDirectory directory = new RAMDirectory();
 		Analyzer analyzer = new MetaphoneReplacementAnalyzer();
 
-		TokenStream.setOnlyUseNewAPI(true);
+		TokenStream.setOnlyUseNewAPI(false);
 
 		IndexWriter writer = new IndexWriter(directory, analyzer, true,
 				IndexWriter.MaxFieldLength.UNLIMITED);

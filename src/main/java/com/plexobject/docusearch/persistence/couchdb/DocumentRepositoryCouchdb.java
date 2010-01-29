@@ -6,7 +6,8 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 
@@ -135,7 +136,7 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
         try {
             Tuple response = httpClient.put(encode(database), null);
             Integer rc = response.first();
-            return rc == RestClient.OK_CREATED;
+            return rc == RestClient.OK_CREATED || rc == RestClient.OK;
         } catch (RestException e) {
             throw new PersistenceException("Failed to create database"
                     + database, e, e.getErrorCode());
@@ -227,7 +228,7 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
                 }
             }
             final Integer rc = response.first();
-            if (rc != RestClient.OK_CREATED) {
+            if (rc != RestClient.OK_CREATED && rc != RestClient.OK) {
                 throw new PersistenceException(
                         "failed to save document with error code " + rc);
             }
@@ -270,7 +271,7 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
             limit = MAX_MAX_LIMIT;
         }
 
-        return getAllDocuments(String.format(
+        return getAllDocuments(database, String.format(
                 "%s/_all_docs_by_seq?startkey=%d&limit=%d&include_docs=true",
                 encode(database), startKey, limit));
     }
@@ -306,7 +307,7 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
             req.append(String.format("&endkey=%%22%s%%22", encode(endKey)));
         }
         req.append("&include_docs=true");
-        List<Document> docs = getAllDocuments(req.toString());
+        List<Document> docs = getAllDocuments(database, req.toString());
         return new PagedList<Document>(docs, startKey, endKey, limit, docs
                 .size() == limit);
     }
@@ -357,7 +358,7 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
             final JSONObject jsonDocs = new JSONObject((String) response
                     .second());
             List<Document> documents = toDocuments(jsonDocs);
-            Map<String, Document> docsById = new HashMap<String, Document>();
+            Map<String, Document> docsById = new TreeMap<String, Document>();
             for (Document doc : documents) {
                 docsById.put(doc.getId(), doc);
             }
@@ -397,10 +398,10 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
             throw new IllegalArgumentException("id not specified for database "
                     + database);
         }
-
+        Tuple response = null;
         try {
-            final Tuple response = httpClient.get(String.format("%s/%s",
-                    encode(database), id));
+            response = httpClient.get(String.format("%s/%s", encode(database),
+                    id));
             final JSONObject jsonDoc = new JSONObject((String) response
                     .second());
             jsonDoc.put(Document.DATABASE, database);
@@ -418,7 +419,8 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
             throw new PersistenceException("Failed to get " + id + " from "
                     + database, e);
         } catch (JSONException e) {
-            throw new ConversionException("failed to convert json", e);
+            throw new ConversionException("failed to convert json " + response,
+                    e);
         }
     }
 
@@ -523,7 +525,7 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
                     "%s/_temp_view", encode(dbName)), req.toString());
             JSONObject jsonDocs = new JSONObject((String) response.second());
             List<Document> documents = toDocuments(jsonDocs);
-            Map<String, Document> docsById = new HashMap<String, Document>();
+            Map<String, Document> docsById = new TreeMap<String, Document>();
             for (Document doc : documents) {
                 docsById.put(doc.getId(), doc);
             }
@@ -545,8 +547,13 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
     }
 
     //
-    private List<Document> getAllDocuments(final String url)
-            throws PersistenceException {
+    private List<Document> getAllDocuments(final String database,
+            final String url) throws PersistenceException {
+        return getAllDocuments(database, url, 0);
+    }
+
+    private List<Document> getAllDocuments(final String database,
+            final String url, int retries) throws PersistenceException {
         final Timer timer = Metric
                 .newTimer("DocumentRepositoryCouchdb.getAllDocuments");
         try {
@@ -560,9 +567,30 @@ public class DocumentRepositoryCouchdb implements DocumentRepository {
             }
             return docs;
         } catch (RestException e) {
-            throw new PersistenceException(
-                    "Failed to get documents for " + url, e, e.getErrorCode());
+            if (e.getErrorCode() == RestClient.CLIENT_ERROR_NOT_FOUND) {
+                createDatabase(database);
+                return Collections.<Document> emptyList();
+            } else if (e.getErrorCode() == RestClient.CLIENT_ERROR_CONFLICT
+                    && retries < 3) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException e1) {
+                    Thread.interrupted();
+                }
+                return getAllDocuments(database, url, retries + 1);
+            } else {
+                throw new PersistenceException("Failed to get documents for "
+                        + url, e, e.getErrorCode());
+            }
         } catch (IOException e) {
+            if (retries < 3) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException e1) {
+                    Thread.interrupted();
+                }
+                return getAllDocuments(database, url, retries + 1);
+            }
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Failed to get documents for " + url, e);
             }

@@ -23,6 +23,10 @@ public class MapToIndexPolicy implements
     public IndexPolicy convert(final Map<String, Object> value) {
         final IndexPolicy policy = new IndexPolicy();
         if (value != null) {
+            policy.setCustomSortingField((String) value
+                    .get(Constants.CUSTOM_SORTING_FIELD));
+            policy.setCustomIdField((String) value
+                    .get(Constants.CUSTOM_ID_FIELD));
             if (value.containsKey(Constants.SCORE)) {
                 policy.setScore(Integer.parseInt(String.valueOf(value
                         .get(Constants.SCORE))));
@@ -47,10 +51,10 @@ public class MapToIndexPolicy implements
                 for (Object f : fields) {
                     final Map<String, Object> field = (Map<String, Object>) f;
                     final String name = (String) field.get(Constants.NAME);
-                    boolean sortableNumber = false;
-                    if (field.containsKey(Constants.SORTABLE_NUMBER)) {
-                        sortableNumber = Boolean.valueOf(field.get(
-                                Constants.SORTABLE_NUMBER).toString());
+                    boolean htmlToText = false;
+                    if (field.containsKey(Constants.HTML_TO_TEXT)) {
+                        htmlToText = Boolean.valueOf(field.get(
+                                Constants.HTML_TO_TEXT).toString());
                     }
                     boolean spatialLatitude = false;
                     if (field.containsKey(Constants.SPATIAL_LATITUDE)) {
@@ -66,6 +70,10 @@ public class MapToIndexPolicy implements
                     if (field.containsKey(Constants.STORE_IN_INDEX)) {
                         storeInIndex = Boolean.valueOf(field.get(
                                 Constants.STORE_IN_INDEX).toString());
+                    }
+                    String storeAs = null;
+                    if (field.get(Constants.STORE_AS) != null) {
+                        storeAs = field.get(Constants.STORE_AS).toString();
                     }
 
                     boolean analyze = true;
@@ -85,7 +93,9 @@ public class MapToIndexPolicy implements
                                 .floatValue();
                     }
 
-                    policy.add(name, storeInIndex, analyze, tokenize, boost, sortableNumber, spatialLatitude, spatialLongitude);
+                    policy.add(name, storeInIndex, storeAs, analyze, tokenize,
+                            boost, htmlToText, spatialLatitude,
+                            spatialLongitude);
                 }
 
             }

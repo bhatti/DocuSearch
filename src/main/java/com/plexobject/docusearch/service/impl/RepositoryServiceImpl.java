@@ -41,6 +41,7 @@ public class RepositoryServiceImpl implements RepositoryService,
     @Autowired
     @Inject
     DocumentRepository documentRepository;
+
     private final ServiceJMXBeanImpl mbean;
 
     public RepositoryServiceImpl() {

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd">
+
+	<import resource="classpath:/embedded-activemq.xml" />
+
+	<bean id="jmsFactory" class="org.apache.activemq.pool.PooledConnectionFactory" destroy-method="stop">
+    		<property name="connectionFactory">
+      		<bean class="org.apache.activemq.ActiveMQConnectionFactory">
+       		 <property name="brokerURL">
+       		   <value>tcp://${activemq.server.name}:${activemq.server.port}</value>
+       		 </property>
+      		</bean>
+    		</property>
+  	</bean>
+
+	<bean id="testQ" class="org.apache.activemq.command.ActiveMQQueue">
+       		<property name="physicalName" value="com.plexobject.docusearch.testQ" />
+	</bean>
+
+<!--
+	<bean id="secondary_test_dataMessageListenerContainer"
+		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsFactory" />
+		<property name="destination" ref="secondary_test_dataQ" />
+		<property name="messageListener" ref="secondary_test_dataIndexHandler" />
+		<property name="exceptionListener" ref="secondary_test_dataIndexHandler" />
+		<property name="sessionTransacted" value="true" />
+		<property name="concurrentConsumers" value="1" />
+		<property name="receiveTimeout" value="2000" />
+		<property name="recoveryInterval" value="3000" />
+	</bean>
+-->
+<!--
+	<bean id="broker" class="org.apache.activemq.broker.BrokerService" init-method="start" lazy-init="true">
+		<property name="persistent" value="true"/>
+		<property name="transportConnectorURIs">
+		<list>
+			<value>tcp://${activemq.server.name}:${activemq.server.port}</value>
+		</list>
+		</property>
+	</bean>
+-->
+
+	<bean id="dlQ" class="org.apache.activemq.command.ActiveMQQueue" lazy-init="true">
+       		<property name="physicalName" value="ActiveMQ.DLQ" />
+	</bean>
+
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate" lazy-init="true">
+		<property name="connectionFactory" ref="jmsFactory" />
+	</bean>
+
+	<bean id="deadLetterReprocessor" class="com.plexobject.docusearch.jms.DeadLetterReprocessor" lazy-init="true">
+		<property name="jmsTemplate" ref="jmsTemplate" />
+		<property name="brokerQuery" ref="brokerQuery" />
+		<property name="connectionFactory" ref="jmsFactory" />
+	</bean>
+
+
+  	<bean id="brokerQuery" class="org.apache.activemq.web.RemoteJMXBrokerFacade" autowire="constructor" destroy-method="shutdown">
+        	<property name="configuration">
+  			<bean class="org.apache.activemq.web.config.SystemPropertiesConfiguration"/>
+		</property>
+        	<property name="brokerName"><null/></property>
+  	</bean>
+</beans>

@@ -31,6 +31,7 @@ public interface ConfigurationService {
      */
     Response getLookupPolicy(String index);
 
+
     /**
      * This method saves index policy for given index
      * 

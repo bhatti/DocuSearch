@@ -10,6 +10,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.plexobject.docusearch.cache.CacheFlusher;
 import com.plexobject.docusearch.converter.Converters;
 import com.plexobject.docusearch.http.RestClient;
 import com.plexobject.docusearch.index.IndexPolicy;
@@ -29,6 +30,7 @@ public class ConfigurationServiceImplTest {
 
     @Before
     public void setUp() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
         repository = EasyMock.createMock(DocumentRepository.class);
         configRepository = EasyMock.createMock(ConfigurationRepository.class);
         service = new ConfigurationServiceImpl();
@@ -41,6 +43,7 @@ public class ConfigurationServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
     }
 
     @Test
@@ -363,6 +366,7 @@ public class ConfigurationServiceImplTest {
         Assert.assertEquals(jsonOriginal.toString(), jsonDoc.toString());
     }
 
+
     private static IndexPolicy newIndexPolicy() {
         final IndexPolicy policy = new IndexPolicy();
         policy.setScore(10);
@@ -370,8 +374,8 @@ public class ConfigurationServiceImplTest {
         policy.setAddToDictionary(true);
         policy.setOwner("shahbhat");
         for (int i = 0; i < 10; i++) {
-            policy.add("name" + i, i % 2 == 0, i % 2 == 1, i % 2 == 1, 1.1F,
-                    true, false, false);
+            policy.add("name" + i, i % 2 == 0, null, i % 2 == 1, i % 2 == 1,
+                    1.1F, true, false, false);
         }
         return policy;
     }

@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.plexobject.docusearch.Configuration;
+import com.plexobject.docusearch.cache.CacheFlusher;
 import com.plexobject.docusearch.docs.impl.DocumentsDatabaseIndexerImpl;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
@@ -34,7 +35,7 @@ public class IndexServiceImplTest {
     private static final String TEST_DB_SECONDARY_TEST_DB = "test_data_secondary_test_data";
     private static final String SECONDARY_TEST_DB = "secondary_test_data";
     private static final String TEST_DB = "test_test_data";
-    private static final String DB_NAME = "MYDB";
+    private static final String DB_NAME = "IndexServiceImplTestDB";
     private static final int LIMIT = Configuration.getInstance().getPageSize();
 
     private static Logger LOGGER = Logger.getRootLogger();
@@ -47,6 +48,7 @@ public class IndexServiceImplTest {
 
     @Before
     public void setUp() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
         LOGGER.setLevel(Level.INFO);
 
         LOGGER.addAppender(new ConsoleAppender(new PatternLayout(
@@ -62,6 +64,7 @@ public class IndexServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
     }
 
     @Test
@@ -77,7 +80,7 @@ public class IndexServiceImplTest {
         EasyMock.replay(configRepository);
 
         Response response = service.createIndexUsingPrimaryDatabase(TEST_DB,
-                null);
+                null, null);
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
 
@@ -143,7 +146,7 @@ public class IndexServiceImplTest {
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
-        Response response = service.updateIndexUsingPrimaryDatabase(TEST_DB,
+        Response response = service.updateIndexUsingPrimaryDatabaseIDs(TEST_DB,
                 null, "id");
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
@@ -170,7 +173,7 @@ public class IndexServiceImplTest {
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
-        Response response = service.updateIndexUsingSecondaryDatabase(
+        Response response = service.updateIndexUsingSecondaryDatabaseIDs(
                 TEST_DB, null, SECONDARY_TEST_DB, TEST_DB_SECONDARY_TEST_DB,
                 TEST_DATUM_ID, SECONDARY_TEST_DATUM_ID, "10");
         EasyMock.verify(repository);
@@ -194,7 +197,7 @@ public class IndexServiceImplTest {
         EasyMock.replay(repository);
         EasyMock.replay(configRepository);
 
-        Response response = service.updateIndexUsingSecondaryDatabase(
+        Response response = service.updateIndexUsingSecondaryDatabaseIDs(
                 TEST_DB, null, SECONDARY_TEST_DB, TEST_DB_SECONDARY_TEST_DB,
                 TEST_DATUM_ID, SECONDARY_TEST_DATUM_ID, "0");
         EasyMock.verify(repository);
@@ -229,8 +232,8 @@ public class IndexServiceImplTest {
         policy.setScore(10);
         policy.setBoost(20.5F);
         for (int i = 0; i < 10; i++) {
-            policy.add("name" + i, i % 2 == 0, i % 2 == 1, i % 2 == 1, 1.1F,
-                    false, false, false);
+            policy.add("name" + i, i % 2 == 0, null, i % 2 == 1, i % 2 == 1,
+                    1.1F, false, false, false);
         }
         return policy;
     }

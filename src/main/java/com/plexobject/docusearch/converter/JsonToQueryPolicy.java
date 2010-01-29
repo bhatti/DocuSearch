@@ -34,6 +34,12 @@ public class JsonToQueryPolicy implements Converter<JSONObject, QueryPolicy> {
     void doConvert(final JSONObject value, final QueryPolicy policy)
             throws JSONException {
 
+        final String sortingMultiplier = value
+                .optString(Constants.SORTING_MULTIPLIER, null);
+        policy.setSortingMultiplier(sortingMultiplier);
+        final String analyzer = value
+                .optString(Constants.ANALYZER, null);
+        policy.setAnalyzer(analyzer);
         final JSONArray fields = value.getJSONArray(Constants.FIELDS);
         if (fields != null) {
             final int len = fields.length();

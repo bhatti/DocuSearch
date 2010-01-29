@@ -1,7 +1,7 @@
 package com.plexobject.docusearch.converter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +49,7 @@ public class JsonToJavaConverter implements Converter<Object, Object> {
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> fromJsonObject(final JSONObject jsonObject)
 			throws JSONException {
-		Map<String, Object> properties = new HashMap<String, Object>();
+		Map<String, Object> properties = new TreeMap<String, Object>();
 		for (Iterator keys = jsonObject.keys(); keys.hasNext();) {
 			String key = (String) keys.next();
 			Object value = jsonObject.get(key);

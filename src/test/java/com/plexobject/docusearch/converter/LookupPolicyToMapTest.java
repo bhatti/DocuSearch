@@ -1,7 +1,7 @@
 package com.plexobject.docusearch.converter;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.codehaus.jettison.json.JSONException;
@@ -32,7 +32,7 @@ public class LookupPolicyToMapTest {
         final Collection<Map<String, Object>> fields = (Collection<Map<String, Object>>) policy
                 .get(Constants.FIELDS);
         Assert.assertEquals(10, fields.size());
-        Map<String, Integer> count = new HashMap<String, Integer>();
+        Map<String, Integer> count = new TreeMap<String, Integer>();
         Assert.assertEquals("return", policy.get(Constants.FIELD_TO_RETURN));
         for (int i = 0; i < 10; i++) {
             count.put("name" + i, new Integer(0));

@@ -1,6 +1,6 @@
 package com.plexobject.docusearch.domain;
 
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import junit.framework.Assert;
@@ -112,7 +112,7 @@ public class DocumentTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testPutAll() {
         final Document doc = new DocumentBuilder("db").build();
-        doc.putAll(new HashMap<String, Object>());
+        doc.putAll(new TreeMap<String, Object>());
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -129,7 +129,7 @@ public class DocumentTest {
 
     @Test
     public void testDocument() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")
@@ -144,7 +144,7 @@ public class DocumentTest {
 
     @Test
     public void testKeySet() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")
@@ -154,7 +154,7 @@ public class DocumentTest {
 
     @Test
     public void testValues() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")
@@ -164,7 +164,7 @@ public class DocumentTest {
 
     @Test
     public void testEquals() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc1 = new DocumentBuilder("db").putAll(map).setId("id")
@@ -177,7 +177,7 @@ public class DocumentTest {
 
     @Test
     public void testHashCode() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")
@@ -187,7 +187,7 @@ public class DocumentTest {
 
     @Test
     public void testGetPropertyWithDefault() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")
@@ -197,7 +197,7 @@ public class DocumentTest {
 
     @Test
     public void testGetInteger() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")
@@ -207,7 +207,7 @@ public class DocumentTest {
 
     @Test
     public void testGetDouble() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")
@@ -217,7 +217,7 @@ public class DocumentTest {
 
     @Test
     public void testGetBoolean() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new TreeMap<String, Object>();
         map.put("One", "1");
         map.put("Two", "2");
         final Document doc = new DocumentBuilder("db").putAll(map).setId("id")

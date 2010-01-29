@@ -35,6 +35,8 @@ public class QueryPolicyToJson implements Converter<QueryPolicy, JSONObject> {
 
     void doConvert(final QueryPolicy policy, final JSONObject value)
             throws JSONException {
+        value.put(Constants.SORTING_MULTIPLIER, policy.getSortingMultiplier());
+        value.put(Constants.ANALYZER, policy.getAnalyzer());
         final JSONArray jsonFields = new JSONArray();
         for (QueryPolicy.Field field : policy.getFields()) {
             JSONObject jsonField = new JSONObject();

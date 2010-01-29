@@ -29,13 +29,16 @@ public class MetricTest {
     @Test
     public final void testNewTimer() throws InterruptedException {
         final Metric metric = new Metric("test");
+        for (int i = 0; i <= Metric.MINIMUM_METRICS; i++) {
+            metric.finishedTimer(0, 0);
+        }
         final Timer timer = metric.newTimer();
         Thread.sleep(10);
         timer.stop();
+
         Assert.assertEquals(1, metric.getTotalCalls());
         Assert.assertTrue(metric.getAverageDurationInNanoSecs() > 1000000);
         Assert.assertTrue(metric.getTotalDurationInNanoSecs() > 1000000);
 
     }
-
 }

@@ -7,6 +7,7 @@ import java.util.TreeMap;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.validator.GenericValidator;
 
 import com.plexobject.docusearch.converter.Constants;
 
@@ -21,35 +22,41 @@ public class IndexPolicy {
     private String analyzer;
     private boolean addToDictionary;
     private String owner = Constants.ALL_OWNER;
+    private String customSortingField;
+    private String customIdField;
 
     public static class Field implements Comparable<Field> {
         public final String name;
         public final boolean storeInIndex;
+        public final String storeAs;
         public final boolean analyze;
         public final boolean tokenize;
         public final float boost;
-        public final boolean sortableNumber;
+        public final boolean htmlToText;
         public final boolean spatialLatitude;
         public final boolean spatialLongitude;
 
         public Field(final String name) {
-            this(name, false, true, false, 0.0F, false, false, false);
+            this(name, false, null, true, false, 0.0F, false, false, false);
         }
 
         public Field(final String name, final boolean storeInIndex,
-                final boolean analyze, final boolean tokenize,
-                final float boost, final boolean sortableNumber,
-                final boolean spatialLatitude, final boolean spatialLongitude) {
+                final String storeAs, final boolean analyze,
+                final boolean tokenize, final float boost,
+                final boolean htmlToText, final boolean spatialLatitude,
+                final boolean spatialLongitude) {
             this.name = name;
             this.storeInIndex = storeInIndex;
+            this.storeAs = storeAs;
             this.analyze = analyze;
             this.tokenize = tokenize;
             this.boost = boost;
-            this.sortableNumber = sortableNumber;
+            this.htmlToText = htmlToText;
             this.spatialLatitude = spatialLatitude;
             this.spatialLongitude = spatialLongitude;
         }
 
+        
         /**
          * @see java.lang.Object#equals(Object)
          */
@@ -77,11 +84,12 @@ public class IndexPolicy {
         @Override
         public String toString() {
             return new ToStringBuilder(this).append("name", this.name).append(
-                    "storeInIndex", storeInIndex).append("analyze", analyze)
-                    .append("tokenize", tokenize).append("boost", this.boost)
-                    .append("spatialLatitude", spatialLatitude).append(
-                            "spaitalLongitude", this.spatialLongitude).append(
-                            "sortableNumber", sortableNumber).toString();
+                    "storeInIndex", storeInIndex).append("storeAs", storeAs)
+                    .append("analyze", analyze).append("tokenize", tokenize)
+                    .append("boost", this.boost).append("spatialLatitude",
+                            spatialLatitude).append("spaitalLongitude",
+                            this.spatialLongitude).append("htmlToText",
+                            htmlToText).toString();
         }
 
         @Override
@@ -104,15 +112,16 @@ public class IndexPolicy {
     }
 
     public void add(final String name) {
-        add(new Field(name, false, true, false, 0.0F, false, false, false));
+        add(new Field(name, false, null, true, false, 0.0F, false, false, false));
     }
 
     public void add(final String name, final boolean storeInIndex,
-            final boolean analyze, final boolean tokenize, final float boost,
-            final boolean sortableNumber, final boolean spatialLatitude,
+            final String storeAs, final boolean analyze,
+            final boolean tokenize, final float boost,
+            final boolean htmlToText, final boolean spatialLatitude,
             final boolean spatialLongitude) {
-        add(new Field(name, storeInIndex, analyze, tokenize, boost,
-                sortableNumber, spatialLatitude, spatialLongitude));
+        add(new Field(name, storeInIndex, storeAs, analyze, tokenize, boost,
+                htmlToText, spatialLatitude, spatialLongitude));
     }
 
     public void add(final Field field) {
@@ -169,7 +178,7 @@ public class IndexPolicy {
     }
 
     public boolean hasOwner() {
-        return owner != null && owner.length() > 0;
+        return !GenericValidator.isBlankOrNull(owner);
     }
 
     public Field getLatitudeField() {
@@ -188,6 +197,51 @@ public class IndexPolicy {
             }
         }
         return null;
+    }
+
+    /**
+     * @return the customSortingField
+     */
+    public String getCustomSortingField() {
+        return customSortingField;
+    }
+
+    /**
+     * @return whether customSortingField is defined
+     */
+    public boolean hasCustomSortingField() {
+        return !GenericValidator.isBlankOrNull(customSortingField);
+    }
+
+    /**
+     * @param customSortingField
+     *            the customSortingField to set
+     */
+    public void setCustomSortingField(String customSortingField) {
+        this.customSortingField = customSortingField;
+    }
+
+
+    /**
+     * @return the customIdField
+     */
+    public String getCustomIdField() {
+        return customIdField;
+    }
+
+    /**
+     * @return whether customIdField is defined
+     */
+    public boolean hasCustomIdField() {
+        return !GenericValidator.isBlankOrNull(customIdField);
+    }
+
+    /**
+     * @param customIdField
+     *            the customIdField to set
+     */
+    public void setCustomIdField(String customIdField) {
+        this.customIdField = customIdField;
     }
 
     /**

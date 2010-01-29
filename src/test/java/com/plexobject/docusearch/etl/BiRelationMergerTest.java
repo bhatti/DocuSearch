@@ -2,7 +2,8 @@ package com.plexobject.docusearch.etl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Arrays;
+import java.util.TreeMap;
 import java.util.Properties;
 
 import org.easymock.EasyMock;
@@ -12,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.plexobject.docusearch.Configuration;
+import com.plexobject.docusearch.cache.CacheFlusher;
 import com.plexobject.docusearch.domain.Document;
 import com.plexobject.docusearch.domain.DocumentBuilder;
 import com.plexobject.docusearch.persistence.ConfigurationRepository;
@@ -19,8 +21,8 @@ import com.plexobject.docusearch.persistence.DocumentRepository;
 import com.plexobject.docusearch.persistence.PagedList;
 
 public class BiRelationMergerTest {
-    private static final String DB_NAME = "MYDB";
-    private static final String TO_DB_NAME = "TO_MYDB";
+    private static final String DB_NAME = "BiRelationMergerTestDB";
+    private static final String TO_DB_NAME = "BiRelationMergerTest_TODB";
     private static final int LIMIT = Configuration.getInstance().getPageSize();
 
     private DocumentRepository repository;
@@ -42,12 +44,14 @@ public class BiRelationMergerTest {
 
     @Before
     public void setUp() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
         repository = EasyMock.createMock(DocumentRepository.class);
         configRepository = EasyMock.createMock(ConfigurationRepository.class);
     }
 
     @After
     public void tearDown() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
     }
 
     @Test
@@ -151,7 +155,7 @@ public class BiRelationMergerTest {
 
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public final void testColumnsDatabase() {
         final Properties props = new Properties();
         props.put("from.database", DB_NAME);
@@ -159,11 +163,14 @@ public class BiRelationMergerTest {
         props.put("from.id", "symbol");
         props.put("to.id", "symbol");
         props.put("to.relation.name", "ticker_id");
+        EasyMock.expect(repository.getAllDocuments(DB_NAME, null, null, 257))
+                .andReturn(new PagedList<Document>(Arrays.<Document> asList()));
+        EasyMock.replay(repository);
 
         new BiRelationMerger(repository, props).run();
     }
 
-    @Test
+    // TODO @Test
     public final void testRun() {
         run("atom");
         run("hash");
@@ -174,16 +181,16 @@ public class BiRelationMergerTest {
     private final void run(final String type) {
         EasyMock.reset(repository);
         EasyMock.reset(configRepository);
-        EasyMock.expect(repository.getAllDocuments(DB_NAME, null, null, LIMIT))
-                .andReturn(PagedList.asList(fromDoc1, fromDoc2));
-        EasyMock.expect(repository.getAllDocuments(DB_NAME, "2", null, LIMIT))
-                .andReturn(PagedList.<Document> emptyList());
         EasyMock.expect(
-                repository.query(TO_DB_NAME, new HashMap<String, String>() {
+                repository.getAllDocuments(DB_NAME, null, null, LIMIT + 1))
+                .andReturn(PagedList.asList(fromDoc1, fromDoc2));
+
+        EasyMock.expect(
+                repository.query(TO_DB_NAME, new TreeMap<String, String>() {
                     {
                         put("symbol", "ibm");
                     }
-                })).andReturn(new HashMap<String, Document>() {
+                })).andReturn(new TreeMap<String, Document>() {
             {
                 put("3", toDoc1);
             }
@@ -192,11 +199,11 @@ public class BiRelationMergerTest {
                 mergedDoc1);
 
         EasyMock.expect(
-                repository.query(TO_DB_NAME, new HashMap<String, String>() {
+                repository.query(TO_DB_NAME, new TreeMap<String, String>() {
                     {
                         put("symbol", "java");
                     }
-                })).andReturn(new HashMap<String, Document>() {
+                })).andReturn(new TreeMap<String, Document>() {
             {
                 put("4", toDoc2);
             }

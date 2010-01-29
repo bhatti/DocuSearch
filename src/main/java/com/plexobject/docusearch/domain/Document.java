@@ -20,6 +20,8 @@ import org.apache.commons.validator.GenericValidator;
 public class Document implements Map<String, Object> {
     public static final String DATABASE = "dbname";
     public static final String ID = "_id";
+    public static final String SECONDARY_ID = "_secondary_id";
+
     public static final String REVISION = "_rev";
 
     private final Map<String, Object> properties;
@@ -81,7 +83,23 @@ public class Document implements Map<String, Object> {
      * @return - unique uuid that identifies this document
      */
     public String getId() {
-        return (String) properties.get(ID);
+        Object id = properties.get(ID);
+        return id != null ? id.toString() : null;
+    }
+
+    /**
+     * @return - secondary id
+     */
+    public String getSecondaryId() {
+        Object sec = properties.get(SECONDARY_ID);
+        return sec != null ? sec.toString() : null;
+    }
+
+    /**
+     * @return - secondary id
+     */
+    public boolean hasSecondaryId() {
+        return !GenericValidator.isBlankOrNull(getSecondaryId());
     }
 
     /**
@@ -277,6 +295,14 @@ public class Document implements Map<String, Object> {
 
     public int getInteger(final String key, final int def) {
         return Integer.parseInt(getProperty(key, String.valueOf(def)));
+    }
+
+    public long getLong(final String key) {
+        return getLong(key, 0L);
+    }
+
+    public long getLong(final String key, final long def) {
+        return Long.valueOf(getProperty(key, String.valueOf(def)));
     }
 
     public double getDouble(final String key) {

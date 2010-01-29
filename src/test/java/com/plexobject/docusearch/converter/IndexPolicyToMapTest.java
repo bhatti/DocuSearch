@@ -1,7 +1,7 @@
 package com.plexobject.docusearch.converter;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.codehaus.jettison.json.JSONException;
@@ -36,7 +36,7 @@ public class IndexPolicyToMapTest {
         final Collection<Map<String, Object>> fields = (Collection<Map<String, Object>>) policy
                 .get(Constants.FIELDS);
         Assert.assertEquals(10, fields.size());
-        Map<String, Integer> count = new HashMap<String, Integer>();
+        Map<String, Integer> count = new TreeMap<String, Integer>();
 
         for (int i = 0; i < 10; i++) {
             count.put("name" + i, new Integer(0));
@@ -67,7 +67,7 @@ public class IndexPolicyToMapTest {
         policy.setScore(10);
         policy.setBoost(20.5F);
         for (int i = 0; i < 10; i++) {
-            policy.add("name" + i, i % 2 == 0, i % 2 == 1, i % 2 == 1, 1.1F,
+            policy.add("name" + i, i % 2 == 0, null, i % 2 == 1, i % 2 == 1, 1.1F,
                     false, false, false);
         }
         return policy;

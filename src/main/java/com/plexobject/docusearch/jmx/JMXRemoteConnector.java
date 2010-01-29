@@ -110,8 +110,9 @@ public class JMXRemoteConnector implements Closeable {
     }
 
     JMXRemoteConnector() {
-        this(Configuration.getInstance().getProperty("docusearch.jmx.rmi.host"),
-                Configuration.getInstance().getInteger("docusearch.jmx.rmi.port"));
+        this(Configuration.getInstance().getProperty("docusearch.jmx.rmi.host",
+                "localhost"), Configuration.getInstance().getInteger(
+                "docusearch.jmx.rmi.port", 1099));
     }
 
     JMXRemoteConnector(final String host, final int port) {

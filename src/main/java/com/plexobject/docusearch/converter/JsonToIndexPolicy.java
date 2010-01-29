@@ -21,6 +21,10 @@ public class JsonToIndexPolicy implements Converter<JSONObject, IndexPolicy> {
     public IndexPolicy convert(final JSONObject value) {
         final IndexPolicy policy = new IndexPolicy();
         if (value != null) {
+            policy.setCustomSortingField(value
+                    .optString(Constants.CUSTOM_SORTING_FIELD, null));
+            policy.setCustomIdField(value
+                    .optString(Constants.CUSTOM_ID_FIELD, null));
             try {
                 if (value.has(Constants.SCORE)) {
                     policy.setScore(Integer.parseInt(value
@@ -34,7 +38,8 @@ public class JsonToIndexPolicy implements Converter<JSONObject, IndexPolicy> {
                     policy.setAnalyzer(value.getString(Constants.ANALYZER));
                 }
                 if (value.has(Constants.ADD_TO_DICTIONARY)) {
-                    policy.setAddToDictionary(Boolean.valueOf(value.getString(Constants.ADD_TO_DICTIONARY)));
+                    policy.setAddToDictionary(Boolean.valueOf(value
+                            .getString(Constants.ADD_TO_DICTIONARY)));
                 }
                 if (value.has(Constants.OWNER)) {
                     policy.setOwner(value.getString(Constants.OWNER));
@@ -45,10 +50,12 @@ public class JsonToIndexPolicy implements Converter<JSONObject, IndexPolicy> {
                     for (int i = 0; i < len; i++) {
                         final JSONObject field = fields.getJSONObject(i);
                         final String name = field.getString(Constants.NAME);
+                        final String storeAs = field
+                                .optString(Constants.STORE_AS, null);
                         final boolean storeInIndex = field
                                 .optBoolean(Constants.STORE_IN_INDEX);
-                        final boolean sortableNumber = field
-                                .optBoolean(Constants.SORTABLE_NUMBER);
+                        final boolean htmlToText = field
+                                .optBoolean(Constants.HTML_TO_TEXT);
                         final boolean spatialLatitude = field
                                 .optBoolean(Constants.SPATIAL_LATITUDE);
                         final boolean spatialLongitude = field
@@ -67,9 +74,9 @@ public class JsonToIndexPolicy implements Converter<JSONObject, IndexPolicy> {
                                     field.getString(Constants.BOOST))
                                     .floatValue();
                         }
-                        policy
-                                .add(name, storeInIndex, analyze, tokenize,
-                                        boost, sortableNumber, spatialLatitude, spatialLongitude);
+                        policy.add(name, storeInIndex, storeAs, analyze,
+                                tokenize, boost, htmlToText, spatialLatitude,
+                                spatialLongitude);
                     }
                 }
             } catch (NumberFormatException e) {

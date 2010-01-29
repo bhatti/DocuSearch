@@ -4,10 +4,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
@@ -23,25 +23,18 @@ public class SimilarityHelper {
     private static final Logger LOGGER = Logger
             .getLogger(SimilarityHelper.class);
     final static int NGRAM_LENGTH = 7;
-    @SuppressWarnings("unused")
-    private final static double MATCH_WEIGHT = 0.0;
-    @SuppressWarnings("unused")
-    private final static double DELETE_WEIGHT = -5.0;
-    @SuppressWarnings("unused")
-    private final static double INSERT_WEIGHT = -5.0;
-    @SuppressWarnings("unused")
-    private final static double SUBSTITUTE_WEIGHT = -5.0;
-    @SuppressWarnings("unused")
-    private final static double TRANSPOSE_WEIGHT = -5.0;
-
-    private final static boolean checkUncompileSpellings = false;
-    private volatile Map<String, SpellChecker> scMap = new HashMap<String, SpellChecker>();
+    // private final static double MATCH_WEIGHT = 0.0;
+    // private final static double DELETE_WEIGHT = -5.0;
+    // private final static double INSERT_WEIGHT = -5.0;
+    // private final static double SUBSTITUTE_WEIGHT = -5.0;
+    // private final static double TRANSPOSE_WEIGHT = -5.0;
+    // private final static boolean checkUncompileSpellings = false;
+    private volatile Map<String, SpellChecker> scMap = new TreeMap<String, SpellChecker>();
     // private volatile Map<String, CompiledSpellChecker> cscMap = new
-    // HashMap<String, CompiledSpellChecker>();
+    // TreeMap<String, CompiledSpellChecker>();
     // private volatile Map<String, TrainSpellChecker> tscMap = new
-    // HashMap<String, TrainSpellChecker>();
-    // private volatile Map<String, TreeSet<String>> tokenSets = new
-    // HashMap<String, TreeSet<String>>();
+    // TreeMap<String, TrainSpellChecker>();
+    private volatile Map<String, TreeSet<String>> tokenSets = new TreeMap<String, TreeSet<String>>();
 
     private static final SimilarityHelper INSTANCE = new SimilarityHelper();
     private static boolean disableDidYouMean = true;
@@ -53,37 +46,40 @@ public class SimilarityHelper {
     public String didYouMean(final String index, final String contents) {
 
         String similar = null;
-        if (!disableDidYouMean) {
-            try {
-                // similar =
-                // getCompiledSpellChecker(index).didYouMean(contents);
-            } catch (Exception e) {
-                LOGGER.warn("Failed to get didYouMean " + index + " -- "
-                        + contents, e);
-            }
-            try {
-                if (checkUncompileSpellings && similar == null) {
-                    final String[] matched = getSpellChecker(index)
-                            .suggestSimilar(contents, 1);
-                    if (matched.length > 0) {
-                        similar = matched[0];
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                LOGGER.warn("Failed to find spellings for " + index
-                        + " to check against '" + contents + "'--" + e);
-            } catch (IOException e) {
-                LOGGER.warn("Failed to get didYouMean " + index + " -- "
-                        + contents, e);
-            }
-        }
+        // if (!disableDidYouMean) {
+        // try {
+        // similar = getCompiledSpellChecker(index).didYouMean(contents);
+        // } catch (FileNotFoundException e) {
+        // LOGGER.warn("Failed to find compiled spellings for " + index
+        // + " to check against '" + contents + "'--" + e);
+        // } catch (IOException e) {
+        // LOGGER.warn("Failed to get didYouMean " + index + " -- "
+        // + contents, e);
+        // }
+        // try {
+        // if (checkUncompileSpellings && similar == null) {
+        // final String[] matched = getSpellChecker(index)
+        // .suggestSimilar(contents, 1);
+        // if (matched.length > 0) {
+        // similar = matched[0];
+        // }
+        // }
+        // } catch (FileNotFoundException e) {
+        // LOGGER.warn("Failed to find spellings for " + index
+        // + " to check against '" + contents + "'--" + e);
+        // } catch (IOException e) {
+        // LOGGER.warn("Failed to get didYouMean " + index + " -- "
+        // + contents, e);
+        // }
+        // }
         if (contents.equals(similar)) {
             similar = null;
         }
         return similar;
     }
 
-    public List<String> prefixMatch(final String index, final String prefix,
+    @SuppressWarnings("unused")
+    private List<String> prefixMatch(final String index, final String prefix,
             int max) {
         List<String> match = new ArrayList<String>();
         if (!disableDidYouMean) {
@@ -115,11 +111,14 @@ public class SimilarityHelper {
     }
 
     public void trainSpellChecker(final String index, final String contents) {
-        try {
-            // getTrainSpellChecker(index).train(contents);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to traing " + index + " -- " + contents, e);
-        }
+        // try {
+        // getTrainSpellChecker(index).train(contents);
+        // } catch (FileNotFoundException e) {
+        // LOGGER.warn("Spell checker file not found for  " + index + " -- "
+        // + contents);
+        // } catch (IOException e) {
+        // LOGGER.warn("Failed to traing " + index + " -- " + contents, e);
+        // }
     }
 
     public void saveTrainingSpellChecker(final String index) throws IOException {
@@ -134,6 +133,7 @@ public class SimilarityHelper {
     }
 
     // PRIVATE METHODS
+    @SuppressWarnings("unused")
     private SpellChecker getSpellChecker(final String index) throws IOException {
         SpellChecker sc = scMap.get(index);
         if (sc == null) {
@@ -150,21 +150,20 @@ public class SimilarityHelper {
 
     private TreeSet<String> getCompiledTokenSet(final String index)
             throws IOException {
-        // synchronized (index) {
-        // TreeSet<String> set = tokenSets.get(index);
-        // if (set == null) {
-        // Set<String> tokenSet = getCompiledSpellChecker(index)
-        // .tokenSet();
-        // if (tokenSet instanceof TreeSet) {
-        // set = (TreeSet<String>) tokenSet;
-        // } else {
-        // set = new TreeSet<String>(tokenSet);
-        // }
-        // tokenSets.put(index, set);
-        // }
-        // return set;
-        // }
-        return null;
+        synchronized (index) {
+            TreeSet<String> set = tokenSets.get(index);
+            // if (set == null) {
+            // Set<String> tokenSet = getCompiledSpellChecker(index)
+            // .tokenSet();
+            // if (tokenSet instanceof TreeSet) {
+            // set = (TreeSet<String>) tokenSet;
+            // } else {
+            // set = new TreeSet<String>(tokenSet);
+            // }
+            // tokenSets.put(index, set);
+            // }
+            return set;
+        }
     }
 
     // private CompiledSpellChecker getCompiledSpellChecker(final String index)

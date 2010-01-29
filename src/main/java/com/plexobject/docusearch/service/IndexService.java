@@ -14,7 +14,7 @@ public interface IndexService {
      * @param index
      */
     public Response createIndexUsingPrimaryDatabase(String index,
-            String policyName);
+            String sourceDatabase, String policyName);
 
     /**
      * This method builds the index using secondary database and a join table
@@ -43,6 +43,25 @@ public interface IndexService {
      *            policy
      */
     public Response updateIndexUsingPrimaryDatabase(String index,
+            String sourceDatabase, String policyName, String docs);
+
+    /**
+     * This method removes documents with matching ids or indexDate
+     */
+    public Response removeIndexedDocuments(String index, String sourceDatabase,
+            String secondaryIdName, String primaryAndSecondaryIds,
+            int olderThanDays);
+
+    /**
+     * This method adds new documents to the index where documents are first
+     * fetched from the database
+     * 
+     * @param index
+     * @param sourceDatabase
+     * @param policyName
+     * @param docIds
+     */
+    public Response updateIndexUsingPrimaryDatabaseIDs(String index,
             String policyName, String docIds);
 
     /**
@@ -60,7 +79,7 @@ public interface IndexService {
      * @param docIds
      *            - doc ids in the secondary database
      */
-    public Response updateIndexUsingSecondaryDatabase(String index,
+    public Response updateIndexUsingSecondaryDatabaseIDs(String index,
             String policyName, String sourceDatabase, String joinDatabase,
             String indexIdInJoinDatabase, String sourceIdInJoinDatabase,
             String docIds);

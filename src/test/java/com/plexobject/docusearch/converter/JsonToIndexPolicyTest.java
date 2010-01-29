@@ -1,6 +1,6 @@
 package com.plexobject.docusearch.converter;
 
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -33,7 +33,7 @@ public class JsonToIndexPolicyTest {
 		Assert.assertEquals(10, policy.getScore());
 		Assert.assertEquals(20.0F, policy.getBoost(), 0.001);
 		Assert.assertEquals(10, policy.getFields().size());
-		Map<String, Integer> count = new HashMap<String, Integer>();
+		Map<String, Integer> count = new TreeMap<String, Integer>();
 
 		for (int i = 0; i < 10; i++) {
 			count.put("name" + i, new Integer(0));

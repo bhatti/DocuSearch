@@ -16,7 +16,13 @@ public class MapToLookupPolicy implements
     @Override
     public LookupPolicy convert(final Map<String, Object> value) {
         final LookupPolicy policy = new LookupPolicy();
+
         if (value != null) {
+            policy.setDictionaryIndex((String) value
+                    .get(Constants.DICTIONARY_DATABASE));
+            policy.setDictionaryField((String) value
+                    .get(Constants.DICTIONARY_FIELD));
+
             policy.setFieldToReturn((String) value
                     .get(Constants.FIELD_TO_RETURN));
             mapToQueryPolicy.doConvert(value, policy);

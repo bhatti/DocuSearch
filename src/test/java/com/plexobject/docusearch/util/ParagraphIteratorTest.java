@@ -6,6 +6,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.plexobject.docusearch.cache.CacheFlusher;
+
 public class ParagraphIteratorTest {
     private static final String TEXT = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent augue augue, tempor a placerat vitae, rutrum ut felis. "
             + "Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Quisque aliquet orci a urna porttitor iaculis eget nec lorem. "
@@ -20,11 +22,13 @@ public class ParagraphIteratorTest {
 
     @Before
     public void setUp() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
         iterator = new ParagraphIterator(TEXT);
     }
 
     @After
     public void tearDown() throws Exception {
+        CacheFlusher.getInstance().flushCaches();
     }
 
     // TODO

@@ -6,56 +6,103 @@
               http://www.springframework.org/schema/context
               http://www.springframework.org/schema/context/spring-context-2.5.xsd">
 
-    	<context:annotation-config />
-	<context:component-scan base-package="com.plexobject.docusearch.converter"/>
-	<context:component-scan base-package="com.plexobject.docusearch.docs.impl"/>
-	<context:component-scan base-package="com.plexobject.docusearch.docs"/>
-	<context:component-scan base-package="com.plexobject.docusearch.domain"/>
-	<context:component-scan base-package="com.plexobject.docusearch.etl"/>
-	<context:component-scan base-package="com.plexobject.docusearch.http.impl"/>
-	<context:component-scan base-package="com.plexobject.docusearch.http"/>
-	<context:component-scan base-package="com.plexobject.docusearch.index.lucene"/>
-	<context:component-scan base-package="com.plexobject.docusearch.index"/>
-	<context:component-scan base-package="com.plexobject.docusearch.jms"/>
-	<context:component-scan base-package="com.plexobject.docusearch.jmx.impl"/>
-	<context:component-scan base-package="com.plexobject.docusearch.jmx"/>
-	<context:component-scan base-package="com.plexobject.docusearch.lucene.analyzer"/>
-	<context:component-scan base-package="com.plexobject.docusearch.lucene.analyzer"/>
-	<context:component-scan base-package="com.plexobject.docusearch.lucene"/>
-	<context:component-scan base-package="com.plexobject.docusearch.metrics"/>
-	<context:component-scan base-package="com.plexobject.docusearch.persistence.bdb"/>
-	<context:component-scan base-package="com.plexobject.docusearch.persistence.couchdb"/>
-	<context:component-scan base-package="com.plexobject.docusearch.persistence.impl"/>
-	<context:component-scan base-package="com.plexobject.docusearch.persistence"/>
-	<context:component-scan base-package="com.plexobject.docusearch.query.lucene"/>
-	<context:component-scan base-package="com.plexobject.docusearch.query"/>
-	<context:component-scan base-package="com.plexobject.docusearch.service.impl"/>
-	<context:component-scan base-package="com.plexobject.docusearch.service"/>
-	<context:component-scan base-package="com.plexobject.docusearch.util"/>
+	<context:annotation-config />
+	<context:component-scan base-package="com.plexobject.docusearch.converter" />
+	<context:component-scan base-package="com.plexobject.docusearch.docs.impl" />
+	<context:component-scan base-package="com.plexobject.docusearch.docs" />
+	<context:component-scan base-package="com.plexobject.docusearch.domain" />
+	<context:component-scan base-package="com.plexobject.docusearch.etl" />
+	<context:component-scan base-package="com.plexobject.docusearch.http.impl" />
+	<context:component-scan base-package="com.plexobject.docusearch.http" />
+	<context:component-scan base-package="com.plexobject.docusearch.index.lucene" />
+	<context:component-scan base-package="com.plexobject.docusearch.index" />
+	<context:component-scan base-package="com.plexobject.docusearch.jms" />
+	<context:component-scan base-package="com.plexobject.docusearch.jmx.impl" />
+	<context:component-scan base-package="com.plexobject.docusearch.jmx" />
+	<context:component-scan base-package="com.plexobject.docusearch.lucene.analyzer" />
+	<context:component-scan base-package="com.plexobject.docusearch.lucene.analyzer" />
+	<context:component-scan base-package="com.plexobject.docusearch.lucene" />
+	<context:component-scan base-package="com.plexobject.docusearch.metrics" />
+	<context:component-scan base-package="com.plexobject.docusearch.persistence.bdb" />
+	<context:component-scan base-package="com.plexobject.docusearch.persistence.couchdb" />
+	<context:component-scan base-package="com.plexobject.docusearch.persistence.impl" />
+	<context:component-scan base-package="com.plexobject.docusearch.persistence" />
+	<context:component-scan base-package="com.plexobject.docusearch.query.lucene" />
+	<context:component-scan base-package="com.plexobject.docusearch.query" />
+	<context:component-scan base-package="com.plexobject.docusearch.service.impl" />
+	<context:component-scan base-package="com.plexobject.docusearch.service" />
+	<context:component-scan base-package="com.plexobject.docusearch.util" />
 
 
-	<bean id="sptialLookup" class="com.plexobject.docusearch.util.SptialLookup"/>
-	<bean id="documentPropertiesHelper" class="com.plexobject.docusearch.docs.DocumentPropertiesHelper"/>
-	<bean id="documentsDatabaseIndexer" class="com.plexobject.docusearch.docs.impl.DocumentsDatabaseIndexerImpl"/>
-	<bean id="documentsDatabaseSearcher" class="com.plexobject.docusearch.docs.impl.DocumentsDatabaseSearcherImpl"/>
-	<bean id="synonymAnalyzer" class="com.plexobject.docusearch.lucene.analyzer.SynonymAnalyzer"/>
-	<bean id="documentRepository" class="com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb"/>
-	<bean id="configRepository" class="com.plexobject.docusearch.persistence.impl.ConfigurationRepositoryImpl"/>
-	<bean id="configService" class="com.plexobject.docusearch.service.impl.ConfigurationServiceImpl">
-		<property name="configRepository" ref="configRepository"/>
+	<bean id="spatialLookup" class="com.plexobject.docusearch.util.SpatialLookup" />
+	<bean id="regionLookup" class="com.plexobject.docusearch.util.RegionLookup">
+		<property name="documentPropertiesHelper" ref="documentPropertiesHelper" />
+		<property name="documentMultiMapHelper" ref="documentMultiMapHelper" />
 	</bean>
-	<bean id="indexService" class="com.plexobject.docusearch.service.impl.IndexServiceImpl">
-		<property name="documentsDatabaseIndexer" ref="documentsDatabaseIndexer"/>
+	<bean id="provincesLookup" class="com.plexobject.docusearch.util.ProvincesLookup">
+		<property name="documentPropertiesHelper" ref="documentPropertiesHelper" />
+	</bean>
+	<bean id="countriesHelper" class="com.plexobject.docusearch.util.CountriesHelper">
+		<property name="documentPropertiesHelper" ref="documentPropertiesHelper" />
+	</bean>
+	<bean id="documentPropertiesHelper" class="com.plexobject.docusearch.docs.DocumentPropertiesHelper" />
+	<bean id="documentMultiMapHelper" class="com.plexobject.docusearch.docs.DocumentMultiMapHelper" />
+	<bean id="documentsDatabaseIndexer"
+		class="com.plexobject.docusearch.docs.impl.DocumentsDatabaseIndexerImpl" >
+		<property name="documentRepository" ref="documentRepository" />
+		<property name="configRepository" ref="configRepository" />
+	</bean>
+	<bean id="documentsDatabaseSearcher"
+		class="com.plexobject.docusearch.docs.impl.DocumentsDatabaseSearcherImpl">
+		<property name="documentRepository" ref="documentRepository" />
+		<property name="configRepository" ref="configRepository" />
+	</bean>
+	<bean id="synonymAnalyzer" class="com.plexobject.docusearch.lucene.analyzer.SynonymAnalyzer" />
+
+
+	<bean id="documentRepository"
+		class="com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb" />
+
+<!--
+	<bean id="xdocumentRepository"
+		class="com.plexobject.docusearch.persistence.file.DocumentRepositoryImpl" />
+-->
+
+	<bean id="configRepository"
+		class="com.plexobject.docusearch.persistence.impl.ConfigurationRepositoryImpl" >
+		<property name="documentRepository" ref="documentRepository" />
+	</bean>
+	<bean id="serverStatusService" class="com.plexobject.docusearch.service.impl.ServerStatusServiceImpl">
+	</bean>
+	<bean id="configService"
+		class="com.plexobject.docusearch.service.impl.ConfigurationServiceImpl">
+		<property name="configRepository" ref="configRepository" />
+	</bean>
+	<bean id="indexService" class="com.plexobject.docusearch.service.impl.IndexServiceImpl" lazy-init="true">
+		<property name="documentsDatabaseIndexer" ref="documentsDatabaseIndexer" />
 	</bean>
 	<bean id="storageService" class="com.plexobject.docusearch.service.impl.RepositoryServiceImpl">
-		<property name="documentRepository" ref="documentRepository"/>
+		<property name="documentRepository" ref="documentRepository" />
 	</bean>
 	<bean id="searchService" class="com.plexobject.docusearch.service.impl.SearchServiceImpl">
-		<property name="configRepository" ref="configRepository"/>
-		<property name="documentRepository" ref="documentRepository"/>
-		<property name="sptialLookup" ref="sptialLookup"/>
+		<property name="configRepository" ref="configRepository" />
+		<property name="documentRepository" ref="documentRepository" />
+		<property name="spatialLookup" ref="spatialLookup" />
+	</bean>
+	<bean id="searchAdminService" class="com.plexobject.docusearch.service.impl.SearchAdminServiceImpl">
+		<property name="configRepository" ref="configRepository" />
+		<property name="documentRepository" ref="documentRepository" />
+		<property name="spatialLookup" ref="spatialLookup" />
+	</bean>
+	<bean id="suggestionService" class="com.plexobject.docusearch.service.impl.SuggestionServiceImpl">
+		<property name="configRepository" ref="configRepository" />
+		<property name="documentRepository" ref="documentRepository" />
+		<property name="spatialLookup" ref="spatialLookup" />
 	</bean>
 
-	<import resource="classpath:/weseed-activemq.xml" />
-</beans>
+	<bean id="deadLetterRedeliverService" class="com.plexobject.docusearch.service.impl.DeadLetterRedeliverServiceImpl" lazy-init="true">
+		<property name="deadLetterReprocessor" ref="deadLetterReprocessor" />
+	</bean>
 
+	<import resource="classpath:/docusearch-activemq.xml" />
+</beans>

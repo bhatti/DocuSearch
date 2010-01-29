@@ -7,6 +7,8 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class LookupPolicy extends QueryPolicy {
     private String fieldToReturn;
+    private String dictionaryIndex;
+    private String dictionaryField;
 
     public LookupPolicy() {
     }
@@ -23,6 +25,36 @@ public class LookupPolicy extends QueryPolicy {
 
     public String getFieldToReturn() {
         return fieldToReturn;
+    }
+
+    /**
+     * @return the dictionaryIndex
+     */
+    public String getDictionaryIndex() {
+        return dictionaryIndex;
+    }
+
+    /**
+     * @param dictionaryIndex
+     *            the dictionaryIndex to set
+     */
+    public void setDictionaryIndex(String dictionaryIndex) {
+        this.dictionaryIndex = dictionaryIndex;
+    }
+
+    /**
+     * @return the dictionaryField
+     */
+    public String getDictionaryField() {
+        return dictionaryField;
+    }
+
+    /**
+     * @param dictionaryField
+     *            the dictionaryField to set
+     */
+    public void setDictionaryField(String dictionaryField) {
+        this.dictionaryField = dictionaryField;
     }
 
     /**
@@ -55,7 +87,9 @@ public class LookupPolicy extends QueryPolicy {
     @Override
     public String toString() {
         return super.toString()
-                + new ToStringBuilder(this).append("fieldToReturn",
+                + new ToStringBuilder(this).append("dictionaryField",
+                        dictionaryField).append("dictionaryIndex",
+                        dictionaryIndex).append("fieldToReturn",
                         fieldToReturn).toString();
     }
 }

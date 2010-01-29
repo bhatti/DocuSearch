@@ -5,7 +5,8 @@ public interface Constants {
     public static final String ANALYZE = "analyze";
     public static final String ANALYZER = "analyzer";
     public static final String STORE_IN_INDEX = "storeInIndex";
-    public static final String SORTABLE_NUMBER = "sortableNumber";
+    public static final String STORE_AS = "storeAs";
+    public static final String HTML_TO_TEXT = "htmlToText";
     public static final String SPATIAL_LATITUDE = "spatialLatitude";
     public static final String SPATIAL_LONGITUDE = "spatialLongitude";
     public static final String TOKENIZE = "tokenize";
@@ -13,6 +14,9 @@ public interface Constants {
     public static final String BOOST = "boost";
     public static final String SCORE = "score";
     public static final String SORT_ORDER = "sortOrder";
+    public static final String SORTING_MULTIPLIER = "sortingMultiplier";
+    public static final String CUSTOM_SORTING_FIELD = "customSortingField";
+    public static final String CUSTOM_ID_FIELD = "customIdField";
     public static final String ASCENDING_ORDER = "ascendingOrder";
     public static final String FIELD_TYPE = "fieldType";
     public static final String VALUE = "value";
@@ -23,5 +27,14 @@ public interface Constants {
     public static final String ALL_OWNER = "*";
     public static final String TIER_PREFIX = "_localTier";
     public static final String DISTANCE = "distance";
-
+    public static final String DICTIONARY_DATABASE = "dictionaryIndex";
+    public static final String DICTIONARY_FIELD = "dictionaryField";
+    public static final String SCORE_MULTIPLIER = "scoreMultiplier";
+    public static final String ZIP_CODE = "postal_code";
+    public static final String CITY = "city";
+    public static final String STATE = "province";
+    public static final String COUNTRY = "country";
+    public static final String ALWAYS_MATCH = "_alwaysMatch";
+    public static final String CODE = "code";
+    public static final String TEST_DB = "test_data";
 }

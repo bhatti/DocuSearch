@@ -16,9 +16,14 @@ public interface SearchService {
      * @param owner
      * @param keywords
      * @param zipCode
-     *            - for spatial search
+     * @param city
+     * @param state
+     * @param country
+     * @param region
      * @param radius
      *            - for spatial search
+     * @param sortBy
+     * @param ascending
      * @param includeSuggestions
      *            - include suggestions for similar keywords
      * @param start
@@ -28,19 +33,10 @@ public interface SearchService {
      * @return JSONObject for SearchDocList
      */
     Response query(String index, String owner, String keywords, String zipCode,
-            String radius, boolean includeSuggestions, int start, int limit,
+            String city, String state, String country, String region,
+            float radius, String sortBy, boolean sortAscending,
+            boolean includeSuggestions, int start, int limit,
             boolean detailedResults);
-
-    /**
-     * This method queries the index with keywords and returns JSONObject for
-     * SearchDocList.
-     * 
-     * @param index
-     * @param keywords
-     * @param limit
-     * @return JSONObject for SearchDocList
-     */
-    Response autocomplete(String index, String keywords, int limit);
 
     /**
      * This method finds similar results for given document id
@@ -56,29 +52,4 @@ public interface SearchService {
      */
     Response moreLikeThis(String index, String externalId, int luceneId,
             int start, int limit, boolean detailedResults);
-
-    /**
-     * This method collection of explanations for query results.
-     * 
-     * @param index
-     * @param owner
-     * @param keywords
-     * @param zipCode
-     *            - for spatial search
-     * @param radius
-     *            - for spatial search
-     * @param start
-     * @param limit
-     * @return JSONArray for explanations
-     */
-    Response explain(String index, String owner, String keywords,
-            String zipCode, String radius, int start, int limit);
-
-    /**
-     * 
-     * @param index
-     * @param numTerms
-     * @return JSONArray with top ranking terms
-     */
-    Response getTopRankingTerms(String index, int numTerms);
 }

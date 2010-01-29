@@ -7,9 +7,12 @@ import java.util.TreeMap;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.validator.GenericValidator;
 
 public class QueryPolicy {
     private final Map<String, Field> fields = new TreeMap<String, Field>();
+    private String sortingMultiplier;
+    private String analyzer;
 
     public enum FieldType {
         STRING(0), INTEGER(1), DOUBLE(2);
@@ -140,6 +143,47 @@ public class QueryPolicy {
     }
 
     /**
+     * @return the sortingMultiplier
+     */
+    public String getSortingMultiplier() {
+        return sortingMultiplier;
+    }
+
+    /**
+     * @return whether sortingMultiplier is defined
+     */
+    public boolean hasSortingMultiplier() {
+        return !GenericValidator.isBlankOrNull(sortingMultiplier);
+    }
+
+    /**
+     * @param sortingMultiplier
+     *            the sortingMultiplier to set
+     */
+    public void setSortingMultiplier(String sortingMultiplier) {
+        this.sortingMultiplier = sortingMultiplier;
+    }
+
+    /**
+     * @return the analyzer
+     */
+    public String getAnalyzer() {
+        return analyzer;
+    }
+
+    /**
+     * @param analyzer
+     *            the analyzer to set
+     */
+    public void setAnalyzer(String analyzer) {
+        this.analyzer = analyzer;
+    }
+
+    public boolean hasAnalyzer() {
+        return !GenericValidator.isBlankOrNull(analyzer);
+    }
+
+    /**
      * @see java.lang.Object#equals(Object)
      */
     @Override
@@ -166,7 +210,8 @@ public class QueryPolicy {
      */
     @Override
     public String toString() {
-        return new ToStringBuilder(this).append("fields", fields).toString();
+        return new ToStringBuilder(this).append("analyzer", analyzer).append(
+                "fields", fields).toString();
     }
 
 }

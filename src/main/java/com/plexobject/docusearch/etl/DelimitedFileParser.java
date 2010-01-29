@@ -5,7 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.validator.GenericValidator;
 
+import com.plexobject.docusearch.domain.Tuple;
 import com.plexobject.docusearch.metrics.Metric;
 import com.plexobject.docusearch.metrics.Timer;
 
@@ -28,7 +29,7 @@ public abstract class DelimitedFileParser implements Runnable {
     private char delimiter;
 
     private final String[] selectedColumns;
-    protected final Map<String, Integer> columnPositions = new HashMap<String, Integer>();
+    protected final Map<String, Integer> columnPositions = new TreeMap<String, Integer>();
 
     public DelimitedFileParser(final File inputFile, final char delimiter,
             final String... selectedColumns) {
@@ -67,7 +68,7 @@ public abstract class DelimitedFileParser implements Runnable {
             }
             final String[] headerColumns = processHeaderRow(StringUtils
                     .splitPreserveAllTokens(line, delimiter));
-            int numRow = 1;
+            int numRow = 0;
             while ((line = in.readLine()) != null) {
                 final String[] columns = getColumns(in, line, headerColumns,
                         numRow);
@@ -89,7 +90,7 @@ public abstract class DelimitedFileParser implements Runnable {
 
     Map<String, String> makeRow(String line, final String[] headerColumns,
             int numRow, final String[] columns) {
-        final Map<String, String> row = new HashMap<String, String>();
+        final Map<String, String> row = new TreeMap<String, String>();
         for (String selectedCol : selectedColumns) {
             Integer pos = columnPositions.get(selectedCol);
             if (pos == null) {
@@ -102,7 +103,18 @@ public abstract class DelimitedFileParser implements Runnable {
                         + ", but selected column " + selectedCol + " requires "
                         + pos);
             }
-
+            // TODO fix this
+            if ("gsa_description".equalsIgnoreCase(headerColumns[pos])) {
+                try {
+                    final Tuple result = com.plexobject.docusearch.util.StringUtils
+                            .splitSentenceAndRest(columns[pos].trim());
+                    row.put("gsa_description_line1", result.first().toString());
+                    row.put("gsa_description_rest", result.second().toString());
+                } catch (IOException e) {
+                    LOGGER.error("failed to split " + headerColumns[pos] + "/"
+                            + columns[pos], e);
+                }
+            }
             row.put(headerColumns[pos], columns[pos].trim());
         }
         return row;
@@ -124,8 +136,8 @@ public abstract class DelimitedFileParser implements Runnable {
             numLine++;
         }
         line = lineBuffer.toString();
-        if (numColumns != headerColumns.length && LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Expected " + headerColumns.length + ", but found "
+        if (numColumns != headerColumns.length) {
+            LOGGER.warn("Expected " + headerColumns.length + ", but found "
                     + numColumns + " for row # " + numRow + ": " + line);
 
         }

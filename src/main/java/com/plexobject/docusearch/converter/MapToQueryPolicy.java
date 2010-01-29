@@ -28,6 +28,12 @@ public class MapToQueryPolicy implements
 
     @SuppressWarnings("unchecked")
     void doConvert(final Map<String, Object> value, final QueryPolicy policy) {
+        final String sortingMultiplier = (String) value
+                .get(Constants.SORTING_MULTIPLIER);
+        policy.setSortingMultiplier(sortingMultiplier);
+        final String analyzer = (String) value
+                .get(Constants.ANALYZER);
+        policy.setAnalyzer(analyzer);
         final List<Object> fields = (List<Object>) value.get(Constants.FIELDS);
         if (fields != null) {
             for (Object f : fields) {

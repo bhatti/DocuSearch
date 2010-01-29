@@ -2,7 +2,7 @@ package com.plexobject.docusearch.converter;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.junit.After;
@@ -34,7 +34,7 @@ public class MapToQueryPolicyTest {
 
         Assert.assertEquals(10, policy.getFields().size());
 
-        Map<String, Integer> count = new HashMap<String, Integer>();
+        Map<String, Integer> count = new TreeMap<String, Integer>();
 
         for (int i = 0; i < 10; i++) {
             count.put("name" + i, new Integer(0));
@@ -52,11 +52,11 @@ public class MapToQueryPolicyTest {
     }
 
     private static Map<String, Object> newQueryPolicyMap() {
-        final Map<String, Object> map = new HashMap<String, Object>();
+        final Map<String, Object> map = new TreeMap<String, Object>();
 
         final Collection<Map<String, Object>> fields = new ArrayList<Map<String, Object>>();
         for (int i = 0; i < 10; i++) {
-            final Map<String, Object> field = new HashMap<String, Object>();
+            final Map<String, Object> field = new TreeMap<String, Object>();
             field.put(Constants.NAME, "name" + i);
             field.put(Constants.SORT_ORDER, i);
             field.put(Constants.ASCENDING_ORDER, i % 2 == 1);
