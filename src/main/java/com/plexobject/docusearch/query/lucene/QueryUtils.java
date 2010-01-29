@@ -395,7 +395,7 @@ public class QueryUtils {
         // parser.setFuzzyPrefixLength(3);
         // parser.setPhraseSlop(1);
         // TODO fix this
-        if (false && similarWords != null) {
+        if (similarWords != null) {
             final String similar = SimilarityHelper.getInstance().didYouMean(
                     index, keywords);
             if (similar != null && !keywords.equalsIgnoreCase(similar)) {

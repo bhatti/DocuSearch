@@ -71,6 +71,9 @@ public class SearchServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
+        EasyMock.reset(repository);
+        EasyMock.reset(configRepository);
+        EasyMock.reset(query);
         CacheFlusher.getInstance().flushCaches();
     }
 

@@ -26,6 +26,8 @@ import com.sun.jersey.spi.inject.Inject;
  * 
  */
 public class DocumentLoader extends DelimitedFileParser {
+    private static final boolean CREATE_POLICY = false;
+
     static Logger LOGGER = Logger.getLogger(DocumentLoader.class);
 
     @Inject
@@ -54,7 +56,7 @@ public class DocumentLoader extends DelimitedFileParser {
         }
 
         if (rowNum == 0) {
-            if (false) {
+            if (CREATE_POLICY) {
                 final IndexPolicy indexPolicy = new IndexPolicy();
                 for (String field : row.keySet()) {
                     indexPolicy.add(field);

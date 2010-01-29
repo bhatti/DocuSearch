@@ -133,7 +133,7 @@ public class CachedMap<K, V> implements Map<K, V>, CacheFlushable {
 
     @Override
     public synchronized Set<K> keySet() {
-        return map.keySet();
+        return new HashSet<K>(map.keySet());
     }
 
     @Override

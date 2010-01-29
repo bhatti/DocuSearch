@@ -70,6 +70,7 @@ public class DocumentBuilder implements Builder<Document> {
      * @throws NullPointerException
      *             - if the name or value is null.
      */
+    @SuppressWarnings("unchecked")
     public DocumentBuilder put(final String name, final Object value) {
         if (name == null) {
             throw new NullPointerException("name is null");

@@ -16,11 +16,11 @@ public class LuceneTestUtils {
 
     @SuppressWarnings("deprecation")
     public static void assertAnalyzesTo(Analyzer analyzer, String input,
-            String[] output) throws Exception {
+            String[] output, boolean termAttribute) throws Exception {
         TokenStream stream = analyzer.tokenStream("field", new StringReader(
                 input));
 
-        if (true) {
+        if (termAttribute) {
             TermAttribute termAttr = (TermAttribute) stream
                     .addAttribute(TermAttribute.class);
             for (int i = 0; i < output.length; i++) {

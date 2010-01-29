@@ -62,6 +62,9 @@ public class SuggestionServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
+        EasyMock.reset(repository);
+        EasyMock.reset(configRepository);
+        EasyMock.reset(query);
         CacheFlusher.getInstance().flushCaches();
     }
 

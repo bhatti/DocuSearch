@@ -159,6 +159,7 @@ public class Document implements Map<String, Object> {
      * @throws NullPointerException
      *             - if the value is null.
      */
+    @SuppressWarnings("unchecked")
     @Override
     public boolean containsValue(final Object value) {
         if (value == null) {

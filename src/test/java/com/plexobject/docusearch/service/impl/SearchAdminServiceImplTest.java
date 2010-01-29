@@ -64,6 +64,9 @@ public class SearchAdminServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
+        EasyMock.reset(repository);
+        EasyMock.reset(configRepository);
+        EasyMock.reset(query);
         CacheFlusher.getInstance().flushCaches();
     }
 
@@ -89,8 +92,8 @@ public class SearchAdminServiceImplTest {
         EasyMock.replay(configRepository);
         EasyMock.replay(query);
 
-        Response response = service.explainSearch(TEST_DB, null, "keywords", null,
-                null, null, null, null, 0, null, true, 0, MAX_LIMIT);
+        Response response = service.explainSearch(TEST_DB, null, "keywords",
+                null, null, null, null, null, 0, null, true, 0, MAX_LIMIT);
 
         EasyMock.verify(repository);
         EasyMock.verify(configRepository);
@@ -112,8 +115,8 @@ public class SearchAdminServiceImplTest {
 
     @Test
     public final void testExplainWithBadIndex() throws JSONException {
-        Response response = service.explainSearch("index\"", null, "keywords", null,
-                null, null, null, null, 0, null, false, MAX_LIMIT, 0);
+        Response response = service.explainSearch("index\"", null, "keywords",
+                null, null, null, null, null, 0, null, false, MAX_LIMIT, 0);
         Assert.assertEquals(RestClient.CLIENT_ERROR_BAD_REQUEST, response
                 .getStatus());
 
@@ -121,8 +124,8 @@ public class SearchAdminServiceImplTest {
 
     @Test
     public final void testExplainWithBadKeywords() throws JSONException {
-        Response response = service.explainSearch(TEST_DB, null, "", null, null,
-                null, null, null, 0, null, false, MAX_LIMIT, 0);
+        Response response = service.explainSearch(TEST_DB, null, "", null,
+                null, null, null, null, 0, null, false, MAX_LIMIT, 0);
         Assert.assertEquals(RestClient.CLIENT_ERROR_BAD_REQUEST, response
                 .getStatus());
 

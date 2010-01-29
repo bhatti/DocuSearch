@@ -48,6 +48,8 @@ public class DocumentLoaderTest {
 
     @After
     public void tearDown() throws Exception {
+        EasyMock.reset(repository);
+        EasyMock.reset(configRepository);
         CacheFlusher.getInstance().flushCaches();
     }
 

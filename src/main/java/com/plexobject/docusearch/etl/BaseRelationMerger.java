@@ -234,10 +234,6 @@ public abstract class BaseRelationMerger implements Runnable {
     protected Collection<Document> getToDocuments(
             final Document sourceDocument, final String toIdValue) {
         try {
-            // TODO fix
-            if (false) {
-                throw new PersistenceException("");
-            }
             return Arrays.asList(repository.getDocument(toDatabase, toIdValue));
         } catch (PersistenceException e) {
             final Map<String, String> criteria = new TreeMap<String, String>();

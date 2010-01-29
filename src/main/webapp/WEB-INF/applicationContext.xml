@@ -61,9 +61,12 @@
 
 
 	<bean id="documentRepository"
-		class="com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb" />
+		class="com.plexobject.docusearch.persistence.bdb.DocumentRepositoryBdb" />
 
 <!--
+	<bean id="documentRepository"
+		class="com.plexobject.docusearch.persistence.couchdb.DocumentRepositoryCouchdb" />
+
 	<bean id="xdocumentRepository"
 		class="com.plexobject.docusearch.persistence.file.DocumentRepositoryImpl" />
 -->
